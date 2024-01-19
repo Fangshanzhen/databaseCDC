@@ -3,23 +3,22 @@ package com.fang.java;
 import org.json.JSONObject;
 
 import lombok.extern.slf4j.Slf4j;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.clients.consumer.ConsumerRecords;
-import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.pentaho.di.core.logging.LogChannel;
 import org.pentaho.di.core.logging.LogChannelFactory;
-import org.pentaho.di.core.row.RowDataUtil;
 import org.pentaho.di.core.row.RowMeta;
 import org.pentaho.di.core.row.RowMetaInterface;
 import org.pentaho.di.core.row.ValueMetaInterface;
 import org.pentaho.di.core.row.value.ValueMetaString;
 
-import java.time.Duration;
 import java.util.*;
 
 @Slf4j
 public class kafkaTransform {
-    public static kettleResponse createTransMeta(String json) throws Exception {
+    private static final LogChannelFactory logChannelFactory = new org.pentaho.di.core.logging.LogChannelFactory();
+    private static final LogChannel kettleLog = logChannelFactory.create("消费kafka");
+
+    public static kettleResponse createTransMeta(String json,String type) throws Exception {
+
         kettleResponse kettleResponse = new kettleResponse();
 
         JSONObject jsonObj = new JSONObject(json);
@@ -47,6 +46,9 @@ public class kafkaTransform {
         }
         kettleResponse.setOutputRowData(outputRowData);
         kettleResponse.setOutputRowMeta(outputRowMeta);
+
+
+        kettleLog.logBasic("-----------------" + outputRowMeta);
         return kettleResponse;
     }
 

@@ -29,11 +29,11 @@ public class postgresqlCDCnew {
 
 
     private static final LogChannelFactory logChannelFactory = new org.pentaho.di.core.logging.LogChannelFactory();
-    private static final LogChannel kettleLog = logChannelFactory.create("POSTGRESQL数据库CDC增量");
+    private static final LogChannel kettleLog = logChannelFactory.create("postgresql数据库CDC增量");
 
     public static void incrementData(String originalDatabaseType, String originalDbname, String originalSchema, String originalIp, String originalPort,
                                      String originalUsername, String originalPassword,
-                                     String tableList, String ip, String topic) throws Exception {
+                                     String tableList, String kafkaipport, String topic) throws Exception {
 
 
         if (tableList != null) {//填入表名的
@@ -57,7 +57,7 @@ public class postgresqlCDCnew {
                 e.printStackTrace();
             }
             Properties props = new Properties();
-            props.put("bootstrap.servers", ip);
+            props.put("bootstrap.servers", kafkaipport);
             props.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
             props.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer");
 

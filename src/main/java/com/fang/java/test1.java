@@ -33,5 +33,39 @@ public class test1 {
 
 
 
+//
+//    public boolean processRow(StepMetaInterface smi, StepDataInterface sdi) throws Exception {
+//        if (first) {
+//
+//            first = false;
+//        }
+//
+//
+//        Object[] r = getRow();
+//
+//
+//        if (r == null) {
+//            setOutputDone();
+//            return false;
+//
+//        }
+//
+//
+//
+//        String json = get(Fields.In, "Message").getString(r);
+//        if(json!=null){
+//            kettleResponse res=kafkaTransform.createTransMeta(json);
+//
+//            putRow(res.getOutputRowMeta(), res.getOutputRowData());
+//
+//        }
+//        return true;
+//
+//
+//    }
+//
+
+
+
 }
 
