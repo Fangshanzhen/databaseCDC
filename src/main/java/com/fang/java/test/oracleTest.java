@@ -7,6 +7,8 @@ public class oracleTest {
 
         /**
          * 如果首次测试的话需要删除偏移量D:\Debezium\offset\oracle下的2个文件
+         * 监听时数据会有1-2分钟的延迟
+         *
          */
 
 //        oracleCDC.incrementData("ORACLE", "ORCL1", "C##TEST", "127.0.0.1", "1521", "c##test1",

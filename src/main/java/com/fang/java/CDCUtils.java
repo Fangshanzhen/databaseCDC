@@ -1,6 +1,7 @@
 package com.fang.java;
 
 import com.alibaba.fastjson.JSONObject;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
@@ -14,6 +15,7 @@ import org.pentaho.di.core.logging.LogChannelFactory;
 import org.pentaho.di.core.row.RowMetaInterface;
 import org.pentaho.di.core.row.ValueMetaInterface;
 
+import java.security.SecureRandom;
 import java.sql.*;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
@@ -27,6 +29,7 @@ import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.ExecutionException;
 
+@Slf4j
 public class CDCUtils {
 
     private static final LogChannelFactory logChannelFactory = new org.pentaho.di.core.logging.LogChannelFactory();
@@ -467,16 +470,16 @@ public class CDCUtils {
 
             if (table1.equals(table)) {
 
-                KafkaProducer<String, String> kafkaProducer = new KafkaProducer<>(props);
-                ProducerRecord<String, String> producerRecord = new ProducerRecord<>(topic, key, String.valueOf(operateJson));
-                try {
-                    RecordMetadata metadata = kafkaProducer.send(producerRecord).get();
-                } catch (InterruptedException | ExecutionException e) {
-                    e.printStackTrace();
-                } finally {
-                    kafkaProducer.close();
-                }
-                kettleLog.logBasic("数据写入kafaka成功！");
+//                KafkaProducer<String, String> kafkaProducer = new KafkaProducer<>(props);
+//                ProducerRecord<String, String> producerRecord = new ProducerRecord<>(topic, key, String.valueOf(operateJson));
+//                try {
+//                    RecordMetadata metadata = kafkaProducer.send(producerRecord).get();
+//                } catch (InterruptedException | ExecutionException e) {
+//                    e.printStackTrace();
+//                } finally {
+//                    kafkaProducer.close();
+//                }
+//                kettleLog.logBasic("数据写入kafka成功！");
 
 //                                            // 将解析出来的数据插入到下游数据库中
                 if ("INSERT".toLowerCase().equals(operate_type)) {
@@ -503,9 +506,131 @@ public class CDCUtils {
     }
 
 
+    public static JSONObject kettleData(org.apache.kafka.connect.data.Struct structValue, String key) {
+        JSONObject operateJson = new JSONObject();
+        if ((String.valueOf(structValue).contains("after") || String.valueOf(structValue).contains("before"))) {
+            org.apache.kafka.connect.data.Struct afterStruct = structValue.getStruct("after");
+            org.apache.kafka.connect.data.Struct beforeStruct = structValue.getStruct("before");
+
+            JSONObject sqlJson = new JSONObject();
+
+            //操作类型
+            String operate_type = "";
+
+            List<Field> fieldsList = null;
+            List<Field> beforeStructList = null;
+
+            if (afterStruct != null && beforeStruct != null) {
+                operate_type = "update";
+                fieldsList = afterStruct.schema().fields();
+                for (Field field : fieldsList) {
+                    String fieldName = field.name();
+                    Object fieldValue = afterStruct.get(fieldName);
+                    sqlJson.put(fieldName, fieldValue);
+                }
+                beforeStructList = beforeStruct.schema().fields();
+                for (Field field : beforeStructList) {
+                    String fieldName = field.name();
+                    Object fieldValue = beforeStruct.get(fieldName);
+                    sqlJson.put(fieldName + "_before", fieldValue);  //字段后面加@
+                }
+
+            } else if (afterStruct != null) {
+                operate_type = "insert";
+                fieldsList = afterStruct.schema().fields();
+                for (Field field : fieldsList) {
+                    String fieldName = field.name();
+                    Object fieldValue = afterStruct.get(fieldName);
+                    sqlJson.put(fieldName, fieldValue);
+                }
+            } else if (beforeStruct != null) {
+                operate_type = "delete";
+                fieldsList = beforeStruct.schema().fields();
+                for (Field field : fieldsList) {
+                    String fieldName = field.name();
+                    Object fieldValue = beforeStruct.get(fieldName);
+                    sqlJson.put(fieldName, fieldValue);
+                }
+            } else {
+               log.info ("-----------数据无变化-------------");
+            }
+
+            operateJson.put("sqlJson", sqlJson);
+            org.apache.kafka.connect.data.Struct source = structValue.getStruct("source");
+            //操作的数据库名
+            String database = source.getString("db");
+            //操作的表名
+            String table1 = source.getString("table");
+
+            //操作的时间戳（单位：毫秒）
+            Object operate_ms = source.get("ts_ms");
+            Object operate_ms1 = structValue.get("ts_ms");
+
+            Instant instantUtc = Instant.ofEpochMilli(Long.valueOf(String.valueOf(operate_ms)));
+
+            // 减去8小时
+            if (Long.valueOf(String.valueOf(operate_ms)) > (Long.valueOf(String.valueOf(operate_ms1)))) {
+                instantUtc = instantUtc.minus(8, ChronoUnit.HOURS);
+            }
+
+            // 转换为目标时区的 LocalDateTime，这里以东八区为例
+            ZoneId zoneId = ZoneId.of("Asia/Shanghai"); // 东八区
+            LocalDateTime datetimeLocal = LocalDateTime.ofInstant(instantUtc, zoneId);
+
+            // 使用DateTimeFormatter格式化时间
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+            String date = datetimeLocal.format(formatter);
+
+
+            operateJson.put("database", database);
+            operateJson.put("table", table1);
+            operateJson.put("operate_ms", date);
+            operateJson.put("operate_type", operate_type);
+
+        }
+        return operateJson;
+
+    }
 
 
 
+    private static final String CHAR_LOWER = "abcdefghijklmnopqrstuvwxyz";
+    private static final String NUMBER = "0123456789";
+    private static final String DATA_FOR_RANDOM_STRING = CHAR_LOWER + NUMBER;
+    private static final int LENGTH = 8;
+    private static SecureRandom random = new SecureRandom();
+
+    public static String generateRandomString() {
+        if (LENGTH < 1) throw new IllegalArgumentException();
+
+        StringBuilder sb = new StringBuilder(LENGTH);
+        for (int i = 0; i < LENGTH; i++) {
+            // 0-48 (inclusive), random returns 0-0.999...
+            int rndCharAt = random.nextInt(DATA_FOR_RANDOM_STRING.length());
+            char rndChar = DATA_FOR_RANDOM_STRING.charAt(rndCharAt);
+
+            sb.append(rndChar);
+        }
+
+        return sb.toString();
+    }
+
+    public static String transformString(String original, String prefix) {
+        // 分割原始字符串
+        String[] elements = original.split(",");
+        StringBuilder result = new StringBuilder();
+
+        // 遍历所有元素，给每个元素加上前缀
+        for (int i = 0; i < elements.length; i++) {
+            result.append(prefix).append("."); // 加上前缀
+            result.append(elements[i]); // 加上原始元素
+            if (i < elements.length - 1) {
+                result.append(","); // 如果不是最后一个元素，则加上逗号
+            }
+        }
+
+        return result.toString();
+    }
 
 
 }

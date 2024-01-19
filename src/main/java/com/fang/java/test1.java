@@ -1,30 +1,37 @@
 package com.fang.java;
 
+import io.debezium.config.Configuration;
+import io.debezium.embedded.EmbeddedEngine;
+import io.debezium.relational.history.FileDatabaseHistory;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.kafka.connect.data.Struct;
+import com.alibaba.fastjson.JSONObject;
+import org.apache.kafka.connect.source.SourceRecord;
+import org.apache.kafka.connect.storage.FileOffsetBackingStore;
+import org.pentaho.di.core.KettleEnvironment;
+import org.pentaho.di.core.database.Database;
+import org.pentaho.di.core.database.DatabaseMeta;
+import org.pentaho.di.core.logging.LogChannel;
+import org.pentaho.di.core.logging.LogChannelFactory;
+import org.pentaho.di.core.row.RowMeta;
+import org.pentaho.di.core.row.RowMetaInterface;
+import org.pentaho.di.core.row.ValueMetaInterface;
+import org.pentaho.di.core.row.value.ValueMetaFactory;
+
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.function.Consumer;
 
-//dbhistory.dat
+import static com.fang.java.CDCUtils.*;
 
 public class test1 {
-    public static void main(String[] args) {
-        List<String>fileList=new ArrayList<>();
-        fileList.add("D:\\Debezium\\offset\\dbhistory.dat");
-        fileList.add("D:\\Debezium\\offset\\file.dat");
-        try {
-            for(String s:fileList) {
-                File file = new File(s);
-                if (file.createNewFile()) {
-                    System.out.println("File created: " + file.getName());
-                } else {
-                    System.out.println("File already exists.");
-                }
-            }
-        } catch (IOException e) {
-            System.out.println("An error occurred.");
-            e.printStackTrace();
-        }
 
-    }
+
+
 }
+

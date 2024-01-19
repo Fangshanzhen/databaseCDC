@@ -155,7 +155,7 @@ public class postgresqlCDC {
                                     .with("database.history.kafka.bootstrap.servers", kafkaipport)
                                     .with("database.history.kafka.topic", topic)
                                     .with("logger.level", "DEBUG")
-                                    .with("slot.name", "my_postgresql_slot") // postgresql 单独配置，注意不可重复
+                                    .with("slot.name", "my_postgresql_slot17") // postgresql 单独配置，注意不可重复
                                     .with("plugin.name", "pgoutput")        //postgresql 单独配置
 
                                     .build();
@@ -163,6 +163,7 @@ public class postgresqlCDC {
                             EmbeddedEngine engine = EmbeddedEngine.create()
                                     .using(config)
                                     .notifying(record -> {
+                                        System.out.println("---------------"+record);
                                         String key = String.valueOf(record.key());
 
                                         Struct structValue = (Struct) record.value();
