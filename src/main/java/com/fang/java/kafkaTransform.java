@@ -18,7 +18,7 @@ import java.util.*;
 @Slf4j
 public class kafkaTransform {
     private static final LogChannelFactory logChannelFactory = new org.pentaho.di.core.logging.LogChannelFactory();
-    private static final LogChannel kettleLog = logChannelFactory.create("消费kafka");
+    private static final LogChannel kettleLog = logChannelFactory.create("消费kafka中的数据");
 
     public static kettleResponse createTransMeta(String json, String type, String originalDatabaseType, String originalDbname, String originalSchema, String originalIp, String originalPort,
                                                  String originalUsername, String originalPassword) throws Exception {

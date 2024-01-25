@@ -25,6 +25,7 @@ import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.ExecutionException;
@@ -444,24 +445,31 @@ public  class CDCUtils {
 //            String date = sdf.format(new Date((Long) operate_ms));
 
             //操作的时间戳（单位：毫秒）
-            Object operate_ms = source.get("ts_ms");
-            Object operate_ms1 = structValue.get("ts_ms");
+//            Object operate_ms = source.get("ts_ms");
+//            Object operate_ms1 = structValue.get("ts_ms");
+//
+//            Instant instantUtc = Instant.ofEpochMilli(Long.valueOf(String.valueOf(operate_ms)));
+//
+//            // 减去8小时  oracle会出现时间戳大8小时
+//            if (Long.valueOf(String.valueOf(operate_ms)) > (Long.valueOf(String.valueOf(operate_ms1)))) {
+//                instantUtc = instantUtc.minus(8, ChronoUnit.HOURS);
+//            }
+//
+//            // 转换为目标时区的 LocalDateTime，这里以东八区为例
+//            ZoneId zoneId = ZoneId.of("Asia/Shanghai"); // 东八区
+//            LocalDateTime datetimeLocal = LocalDateTime.ofInstant(instantUtc, zoneId);
+//
+//            // 使用DateTimeFormatter格式化时间
+//            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+//            String date = datetimeLocal.format(formatter);
 
-            Instant instantUtc = Instant.ofEpochMilli(Long.valueOf(String.valueOf(operate_ms)));
-
-            // 减去8小时  oracle会出现时间戳大8小时
-            if (Long.valueOf(String.valueOf(operate_ms)) > (Long.valueOf(String.valueOf(operate_ms1)))) {
-                instantUtc = instantUtc.minus(8, ChronoUnit.HOURS);
+            long tsMs = source.getInt64("ts_ms");
+            long tsMs1 = structValue.getInt64("ts_ms");
+            if (tsMs > tsMs1) {
+                tsMs = tsMs - 8 * 60 * 60 * 1000;  //oracle、sqlserver时间会多8小时
             }
-
-            // 转换为目标时区的 LocalDateTime，这里以东八区为例
-            ZoneId zoneId = ZoneId.of("Asia/Shanghai"); // 东八区
-            LocalDateTime datetimeLocal = LocalDateTime.ofInstant(instantUtc, zoneId);
-
-            // 使用DateTimeFormatter格式化时间
-            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-            String date = datetimeLocal.format(formatter);
-
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+            String date = sdf.format(new Date(tsMs));
 
             operateJson.put("database", database);
             operateJson.put("table", table1);

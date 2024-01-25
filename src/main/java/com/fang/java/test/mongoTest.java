@@ -19,7 +19,9 @@ import java.util.concurrent.ExecutionException;
 
 import static com.fang.java.mongodbUtils.structToJson;
 
-
+/**
+ * 测试成功
+ */
 public class mongoTest {
 
 
@@ -55,8 +57,8 @@ public class mongoTest {
                 .with("connector.class", "io.debezium.connector.mongodb.MongoDbConnector")
                 .with("mongodb.hosts", "aiit-zhyl/10.0.108.31:27017")
                 .with("mongodb.name", "test")
-                .with("database.include.list", "test")
-                .with("collection.include.list", "test.test")
+                .with("database.whitelist", "test")
+                .with("collection.whitelist", "test.test")
                 .with("offset.storage", FileOffsetBackingStore.class.getName())
                 .with("offset.storage.file.filename", "D:\\\\Debezium\\\\offset\\\\mongodb\\\\file.dat")
                 .with("offset.flush.interval.ms", 1000)
