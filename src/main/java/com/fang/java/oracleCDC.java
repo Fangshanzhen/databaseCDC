@@ -129,8 +129,7 @@ public class oracleCDC {
                                     .with("database.server.name", "my-oracle-server2")
                                     .with("schema.whitelist", originalSchema)
                                     .with("table.include.list", originalSchema + "." + table)
-                                    .with("database.history.kafka.bootstrap.servers", kafkaipport)
-                                    .with("database.history.kafka.topic", topic)
+
 //                .with("snapshot.mode", "initial")
                                     .build();
 

@@ -3,6 +3,9 @@ package com.fang.java;
 import org.json.JSONObject;
 
 import lombok.extern.slf4j.Slf4j;
+import org.pentaho.di.core.KettleEnvironment;
+import org.pentaho.di.core.database.Database;
+import org.pentaho.di.core.database.DatabaseMeta;
 import org.pentaho.di.core.logging.LogChannel;
 import org.pentaho.di.core.logging.LogChannelFactory;
 import org.pentaho.di.core.row.RowMeta;
@@ -17,39 +20,72 @@ public class kafkaTransform {
     private static final LogChannelFactory logChannelFactory = new org.pentaho.di.core.logging.LogChannelFactory();
     private static final LogChannel kettleLog = logChannelFactory.create("消费kafka");
 
-    public static kettleResponse createTransMeta(String json,String type) throws Exception {
+    public static kettleResponse createTransMeta(String json, String type, String originalDatabaseType, String originalDbname, String originalSchema, String originalIp, String originalPort,
+                                                 String originalUsername, String originalPassword) throws Exception {
 
         kettleResponse kettleResponse = new kettleResponse();
+        KettleEnvironment.init();
+        DatabaseMeta originalDbmeta = null; //
+        try {
+            originalDbmeta = new DatabaseMeta(originalDbname, originalDatabaseType, "Native(JDBC)", originalIp, originalDbname, originalPort, originalUsername, originalPassword);
+        } catch (Exception e) {
+            kettleLog.logError(e + "");
+        }
+        Database originalDatabase = new Database(originalDbmeta);
+        originalDatabase.connect();
 
-        JSONObject jsonObj = new JSONObject(json);
-        // 处理JSON数据
-        JSONObject sqlJsonObj = jsonObj.getJSONObject("sqlJson");
 
+        try {
+            if (json != null) {
+                JSONObject jsonObj = new JSONObject(json);
+                // 处理JSON数据
+                String table = jsonObj.getString("table");
+                String sql = null;
+                if (originalDatabaseType.equals("ORACLE")) {
+                    sql = "select * from " + originalSchema + "." + table + " where rownum <=10 ";  //用sql来获取字段名及属性以便在目标库中创建表
+                } else if (originalDatabaseType.equals("MSSQL")) {
+                    sql = "select top 10 * from " + originalDatabase + "." + originalSchema + "." + table;   //sqlserver  没有limit 用top
+                } else {
+                    sql = "select * from " + originalSchema + "." + table + "  limit 10;";
+                }
+
+                RowMetaInterface rowMetaInterface = originalDatabase.getQueryFieldsFromPreparedStatement(sql); //获取该表的字段结构
+                Object[] outputRowData = new Object[rowMetaInterface.size()];
+
+                if (type.equals("after") && jsonObj.keySet().contains("afterJson")) { //只输出after的
+                    JSONObject sqlJsonObj = jsonObj.getJSONObject("afterJson");
+                    getData(sqlJsonObj,rowMetaInterface,outputRowData);
+                }
+                if (type.equals("before") && jsonObj.keySet().contains("beforeJson") ) { //只输出before的
+                    JSONObject sqlJsonObj = jsonObj.getJSONObject("beforeJson");
+                    getData(sqlJsonObj,rowMetaInterface,outputRowData);
+                }
+
+                kettleResponse.setOutputRowData(outputRowData);
+                kettleResponse.setOutputRowMeta(rowMetaInterface);
+    //            kettleLog.logBasic("-----------------" + rowMetaInterface);
+
+
+            }
+        } finally {
+            originalDatabase.disconnect();
+        }
+        return kettleResponse;
+    }
+
+    private static void getData(JSONObject sqlJsonObj, RowMetaInterface rowMetaInterface, Object[] outputRowData) {
         Iterator<String> keys = sqlJsonObj.keys();
-
-        RowMetaInterface outputRowMeta = new RowMeta();
         Map<String, Object> outputRowDataMap = new HashMap<>();
 
         while (keys.hasNext()) {
             String key = keys.next();
             Object value = sqlJsonObj.get(key);
-            ValueMetaInterface valueMeta = new ValueMetaString(key);
-            outputRowMeta.addValueMeta(valueMeta);
             outputRowDataMap.put(key, value);
         }
-
-        // Create output row
-        Object[] outputRowData = new Object[outputRowMeta.size()];
-        for (int i = 0; i < outputRowMeta.size(); i++) {
-            ValueMetaInterface valueMeta = outputRowMeta.getValueMeta(i);
+        for (int i = 0; i < rowMetaInterface.size(); i++) {
+            ValueMetaInterface valueMeta = rowMetaInterface.getValueMeta(i);
             outputRowData[i] = outputRowDataMap.get(valueMeta.getName());
         }
-        kettleResponse.setOutputRowData(outputRowData);
-        kettleResponse.setOutputRowMeta(outputRowMeta);
-
-
-        kettleLog.logBasic("-----------------" + outputRowMeta);
-        return kettleResponse;
     }
 
 }

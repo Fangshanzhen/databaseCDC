@@ -143,8 +143,7 @@ public class db2CDC {
                                     .with("offset.flush.interval.ms", 6000)
                                     .with("database.history", FileDatabaseHistory.class.getName())
                                     .with("database.history.file.filename", "D:\\\\Debezium\\\\offset\\\\db2\\\\dbhistory.dat")
-                                    .with("database.history.kafka.bootstrap.servers", kafkaipport)
-                                    .with("database.history.kafka.topic", topic)
+
                                     .with("logger.level", "DEBUG")
 
                                     .build();

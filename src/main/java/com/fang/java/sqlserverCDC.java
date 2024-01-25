@@ -155,8 +155,7 @@ public class sqlserverCDC {
                                     .with("offset.flush.interval.ms", 2000)
                                     .with("database.history", FileDatabaseHistory.class.getName())
                                     .with("database.history.file.filename", "D:\\\\Debezium\\\\offset\\\\sqlserver\\\\dbhistory.dat")
-                                    .with("database.history.kafka.bootstrap.servers", kafkaipport)
-                                    .with("database.history.kafka.topic", topic)
+
                                     .with("logger.level", "DEBUG")
 
                                     .build();

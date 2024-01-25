@@ -20,7 +20,7 @@ public class oracleTest {
 
         oracleCDC.incrementData("ORACLE", "ORCL1", "C##FANG", "127.0.0.1", "1521", "c##fang",
                 "test", "POSTGRESQL", "postgres", "test", "127.0.0.1", "5432", "postgres",
-                "123456", "FANG1", "10.0.108.51:9092", "oracle_cdc", "FANG", "FANG_INDEX","etltime");
+                "123456", "FANG", "10.0.108.51:9092", "oracle_cdc", "FANG", "FANG_INDEX","etltime");
 
 
     }

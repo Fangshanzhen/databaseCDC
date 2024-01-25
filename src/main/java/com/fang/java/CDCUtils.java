@@ -30,7 +30,7 @@ import java.util.Properties;
 import java.util.concurrent.ExecutionException;
 
 @Slf4j
-public class CDCUtils {
+public  class CDCUtils {
 
     private static final LogChannelFactory logChannelFactory = new org.pentaho.di.core.logging.LogChannelFactory();
     private static final LogChannel kettleLog = logChannelFactory.create("数据CDC增量工具类");
@@ -449,7 +449,7 @@ public class CDCUtils {
 
             Instant instantUtc = Instant.ofEpochMilli(Long.valueOf(String.valueOf(operate_ms)));
 
-            // 减去8小时
+            // 减去8小时  oracle会出现时间戳大8小时
             if (Long.valueOf(String.valueOf(operate_ms)) > (Long.valueOf(String.valueOf(operate_ms1)))) {
                 instantUtc = instantUtc.minus(8, ChronoUnit.HOURS);
             }
@@ -506,13 +506,14 @@ public class CDCUtils {
     }
 
 
-    public static JSONObject kettleData(org.apache.kafka.connect.data.Struct structValue, String key) {
+    public static JSONObject transformData(org.apache.kafka.connect.data.Struct structValue) {
         JSONObject operateJson = new JSONObject();
         if ((String.valueOf(structValue).contains("after") || String.valueOf(structValue).contains("before"))) {
             org.apache.kafka.connect.data.Struct afterStruct = structValue.getStruct("after");
             org.apache.kafka.connect.data.Struct beforeStruct = structValue.getStruct("before");
 
-            JSONObject sqlJson = new JSONObject();
+            JSONObject beforeJson = new JSONObject();
+            JSONObject afterJson = new JSONObject();
 
             //操作类型
             String operate_type = "";
@@ -526,13 +527,13 @@ public class CDCUtils {
                 for (Field field : fieldsList) {
                     String fieldName = field.name();
                     Object fieldValue = afterStruct.get(fieldName);
-                    sqlJson.put(fieldName, fieldValue);
+                    afterJson.put(fieldName, fieldValue);
                 }
                 beforeStructList = beforeStruct.schema().fields();
                 for (Field field : beforeStructList) {
                     String fieldName = field.name();
                     Object fieldValue = beforeStruct.get(fieldName);
-                    sqlJson.put(fieldName + "_before", fieldValue);  //字段后面加@
+                    beforeJson.put(fieldName , fieldValue);  //字段后面加@
                 }
 
             } else if (afterStruct != null) {
@@ -541,7 +542,7 @@ public class CDCUtils {
                 for (Field field : fieldsList) {
                     String fieldName = field.name();
                     Object fieldValue = afterStruct.get(fieldName);
-                    sqlJson.put(fieldName, fieldValue);
+                    afterJson.put(fieldName, fieldValue);
                 }
             } else if (beforeStruct != null) {
                 operate_type = "delete";
@@ -549,41 +550,33 @@ public class CDCUtils {
                 for (Field field : fieldsList) {
                     String fieldName = field.name();
                     Object fieldValue = beforeStruct.get(fieldName);
-                    sqlJson.put(fieldName, fieldValue);
+                    beforeJson.put(fieldName, fieldValue);
                 }
             } else {
                log.info ("-----------数据无变化-------------");
             }
 
-            operateJson.put("sqlJson", sqlJson);
+            operateJson.put("beforeJson", beforeJson);
+            operateJson.put("afterJson", afterJson);
             org.apache.kafka.connect.data.Struct source = structValue.getStruct("source");
             //操作的数据库名
             String database = source.getString("db");
             //操作的表名
-            String table1 = source.getString("table");
+            String table = source.getString("table");
 
             //操作的时间戳（单位：毫秒）
             Object operate_ms = source.get("ts_ms");
-            Object operate_ms1 = structValue.get("ts_ms");
 
             Instant instantUtc = Instant.ofEpochMilli(Long.valueOf(String.valueOf(operate_ms)));
 
-            // 减去8小时
-            if (Long.valueOf(String.valueOf(operate_ms)) > (Long.valueOf(String.valueOf(operate_ms1)))) {
-                instantUtc = instantUtc.minus(8, ChronoUnit.HOURS);
-            }
-
-            // 转换为目标时区的 LocalDateTime，这里以东八区为例
             ZoneId zoneId = ZoneId.of("Asia/Shanghai"); // 东八区
             LocalDateTime datetimeLocal = LocalDateTime.ofInstant(instantUtc, zoneId);
 
-            // 使用DateTimeFormatter格式化时间
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
             String date = datetimeLocal.format(formatter);
 
-
             operateJson.put("database", database);
-            operateJson.put("table", table1);
+            operateJson.put("table", table);
             operateJson.put("operate_ms", date);
             operateJson.put("operate_type", operate_type);
 
@@ -615,22 +608,7 @@ public class CDCUtils {
         return sb.toString();
     }
 
-    public static String transformString(String original, String prefix) {
-        // 分割原始字符串
-        String[] elements = original.split(",");
-        StringBuilder result = new StringBuilder();
 
-        // 遍历所有元素，给每个元素加上前缀
-        for (int i = 0; i < elements.length; i++) {
-            result.append(prefix).append("."); // 加上前缀
-            result.append(elements[i]); // 加上原始元素
-            if (i < elements.length - 1) {
-                result.append(","); // 如果不是最后一个元素，则加上逗号
-            }
-        }
-
-        return result.toString();
-    }
 
 
 }

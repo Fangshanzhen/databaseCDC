@@ -149,11 +149,9 @@ public class postgresqlCDC {
                                     .with("name", "my-connector-postgresql-0")
                                     .with("offset.storage", FileOffsetBackingStore.class.getName())
                                     .with("offset.storage.file.filename", "D:\\\\Debezium\\\\offset\\\\postgresql\\\\file.dat")
-                                    .with("offset.flush.interval.ms", 2000)  //这个时间得设置得合理，不然会导致记录得偏移量还未来得及写进文件中，目前设定5秒钟
+                                    .with("offset.flush.interval.ms", 2000)  //这个时间得设置得合理，不然会导致记录得偏移量还未来得及写进文件中
                                     .with("database.history", FileDatabaseHistory.class.getName())
                                     .with("database.history.file.filename", "D:\\\\Debezium\\\\offset\\\\postgresql\\\\dbhistory.dat")
-                                    .with("database.history.kafka.bootstrap.servers", kafkaipport)
-                                    .with("database.history.kafka.topic", topic)
                                     .with("logger.level", "DEBUG")
                                     .with("slot.name", "my_postgresql_slot17") // postgresql 单独配置，注意不可重复
                                     .with("plugin.name", "pgoutput")        //postgresql 单独配置
