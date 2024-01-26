@@ -15,6 +15,8 @@ import org.pentaho.di.core.logging.LogChannelFactory;
 import org.pentaho.di.core.row.RowMetaInterface;
 import org.pentaho.di.core.row.ValueMetaInterface;
 
+import java.io.File;
+import java.io.IOException;
 import java.security.SecureRandom;
 import java.sql.*;
 import java.text.SimpleDateFormat;
@@ -572,6 +574,7 @@ public  class CDCUtils {
             //操作的表名
             String table = source.getString("table");
 
+            String schema = source.getString("schema");
             //操作的时间戳（单位：毫秒）
             Object operate_ms = source.get("ts_ms");
 
@@ -585,6 +588,7 @@ public  class CDCUtils {
 
             operateJson.put("database", database);
             operateJson.put("table", table);
+            operateJson.put("schema", schema);
             operateJson.put("operate_ms", date);
             operateJson.put("operate_type", operate_type);
 
@@ -617,6 +621,41 @@ public  class CDCUtils {
     }
 
 
+    public static String transformString(String original, String prefix) {
+        // 分割原始字符串
+        String[] elements = original.split(",");
+        StringBuilder result = new StringBuilder();
+
+        // 遍历所有元素，给每个元素加上前缀
+        for (int i = 0; i < elements.length; i++) {
+            result.append(prefix).append("."); // 加上前缀.
+            result.append(elements[i]); // 加上原始元素
+            if (i < elements.length - 1) {
+                result.append(","); // 如果不是最后一个元素，则加上逗号
+            }
+        }
+
+        return result.toString();
+    }
+
+
+    public static void createFile(String offsetAddress, String databaseHistoryAddress) {
+        List<String> fileList = new ArrayList<>();
+        fileList.add(offsetAddress);
+        fileList.add(databaseHistoryAddress);
+        try {
+            for (String s : fileList) {
+                File file = new File(s);
+                if (file.createNewFile()) {
+                    log.info("File created: " + file.getName());
+                } else {
+                    log.info("File already exists.");
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 
 
 }

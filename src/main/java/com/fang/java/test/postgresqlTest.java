@@ -18,7 +18,9 @@ public class postgresqlTest {
                 "123456","test2","10.0.108.51:9092","test01191","D:\\Debezium\\offset\\postgresql\\file.dat",
                 "D:\\Debezium\\offset\\postgresql\\dbhistory.dat");
 
-
+//        databaseCDC.cdcData("postgresql", "postgres", "test", "127.0.0.1", "5432", "postgres",
+//                "123456","test2,test3","10.0.108.51:9092","postgresql_topic","D:\\Debezium\\offset\\postgresql\\file.dat",
+//                "D:\\Debezium\\offset\\postgresql\\dbhistory.dat",null);
 
     }
 
