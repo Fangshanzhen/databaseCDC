@@ -34,6 +34,8 @@ public class postgresqlCDCnew {
     /**
      * postgresql 本次测试成功
      * https://my.oschina.net/u/3425541/blog/5534458
+     * <p>
+     * 注意注意，postgresql在打包放进kettle中进行运行的时候要在pdi-ce-8.2.0.0-342\data-integration\ext-lib中加一个flink-connector-postgres-cdc-2.0.1.jar包
      */
 
     private static final LogChannelFactory logChannelFactory = new org.pentaho.di.core.logging.LogChannelFactory();
@@ -111,7 +113,7 @@ public class postgresqlCDCnew {
                                 String key = String.valueOf(record.key());
 
                                 Struct structValue = (Struct) record.value();
-                                JSONObject operateJson = transformData(structValue);
+                                JSONObject operateJson = transformData(structValue, originalDatabaseType);
                                 KafkaProducer<String, String> kafkaProducer = new KafkaProducer<>(props);
                                 ProducerRecord<String, String> producerRecord = new ProducerRecord<>(topic, key, String.valueOf(operateJson));
                                 try {

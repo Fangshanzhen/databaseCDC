@@ -153,7 +153,7 @@ public class postgresqlCDC {
                                     .with("database.history", FileDatabaseHistory.class.getName())
                                     .with("database.history.file.filename", "D:\\\\Debezium\\\\offset\\\\postgresql\\\\dbhistory.dat")
                                     .with("logger.level", "DEBUG")
-                                    .with("slot.name", "my_postgresql_slot17") // postgresql 单独配置，注意不可重复
+                                    .with("slot.name", "my_postgresql_slot") // postgresql 单独配置，注意不可重复
                                     .with("plugin.name", "pgoutput")        //postgresql 单独配置
 
                                     .build();
@@ -165,7 +165,7 @@ public class postgresqlCDC {
                                         String key = String.valueOf(record.key());
 
                                         Struct structValue = (Struct) record.value();
-                                        commonCrud(structValue, table,key, topic,  props, targetSchema, targetDatabaseType, targetIp, targetPort, targetUsername, targetPassword, targetDbname, etlTime,index);
+//                                        commonCrud(structValue, table,key, topic,  props, targetSchema, targetDatabaseType, targetIp, targetPort, targetUsername, targetPassword, targetDbname, etlTime,index);
                                     })
                                     .build();
 

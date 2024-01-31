@@ -48,27 +48,27 @@
         <dependency>
             <groupId>io.debezium</groupId>
             <artifactId>debezium-connector-postgres</artifactId>
-            <version>1.6.4.Final</version>
+            <version>1.9.7.Final</version>
         </dependency>
         <dependency>
             <groupId>io.debezium</groupId>
             <artifactId>debezium-connector-oracle</artifactId>
-            <version>1.6.4.Final</version>
+            <version>1.9.7.Final</version>
         </dependency>
         <dependency>
             <groupId>io.debezium</groupId>
             <artifactId>debezium-connector-sqlserver</artifactId>
-            <version>1.6.4.Final</version>
+            <version>1.9.7.Final</version>
         </dependency>
         <dependency>
             <groupId>io.debezium</groupId>
             <artifactId>debezium-connector-mysql</artifactId>
-            <version>1.6.4.Final</version>
+            <version>1.9.7.Final</version>
         </dependency>
         <dependency>
             <groupId>io.debezium</groupId>
             <artifactId>debezium-connector-mongodb</artifactId>
-            <version>1.6.4.Final</version>
+            <version>1.9.7.Final</version>
             <exclusions>
                 <exclusion>
                     <groupId>org.mongodb</groupId>
@@ -80,12 +80,12 @@
         <dependency>
             <groupId>io.debezium</groupId>
             <artifactId>debezium-embedded</artifactId>
-            <version>1.6.4.Final</version>
+            <version>1.9.7.Final</version>
         </dependency>
         <dependency>
             <groupId>io.debezium</groupId>
             <artifactId>debezium-connector-db2</artifactId>
-            <version>1.6.4.Final</version>
+            <version>1.9.7.Final</version>
         </dependency>
         <dependency>
             <groupId>com.oracle.ojdbc</groupId>
@@ -101,7 +101,7 @@
         <dependency>
             <groupId>io.debezium</groupId>
             <artifactId>debezium-core</artifactId>
-            <version>1.6.4.Final</version>
+            <version>1.9.7.Final</version>
         </dependency>
         <dependency>
             <groupId>org.apache.kafka</groupId>
@@ -315,7 +315,7 @@
                 <!--</executions>-->
             <!--</plugin>-->
 
-           <!---->
+
 
 
 

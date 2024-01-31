@@ -2,9 +2,7 @@ package com.fang.java;
 
 import com.alibaba.fastjson.JSONObject;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.kafka.clients.producer.KafkaProducer;
-import org.apache.kafka.clients.producer.ProducerRecord;
-import org.apache.kafka.clients.producer.RecordMetadata;
+
 import org.apache.kafka.connect.data.Field;
 import org.pentaho.di.core.Const;
 import org.pentaho.di.core.database.Database;
@@ -14,6 +12,7 @@ import org.pentaho.di.core.logging.LogChannel;
 import org.pentaho.di.core.logging.LogChannelFactory;
 import org.pentaho.di.core.row.RowMetaInterface;
 import org.pentaho.di.core.row.ValueMetaInterface;
+import org.apache.kafka.connect.data.Struct;
 
 import java.io.File;
 import java.io.IOException;
@@ -24,16 +23,14 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.Properties;
-import java.util.concurrent.ExecutionException;
+
 
 @Slf4j
-public  class CDCUtils {
+public class CDCUtils {
 
     private static final LogChannelFactory logChannelFactory = new org.pentaho.di.core.logging.LogChannelFactory();
     private static final LogChannel kettleLog = logChannelFactory.create("数据CDC增量工具类");
@@ -43,17 +40,15 @@ public  class CDCUtils {
         Connection conn = getConnection(targetDatabaseType, targetIp, targetPort, targetSchema, targetUsername, targetPassword, targetDbname);
         assert conn != null;
         conn.setAutoCommit(false);
-        List<String> values = new ArrayList<>();
+        List<Object> values = new ArrayList<>();
         StringBuilder sql = new StringBuilder("DELETE FROM " + targetSchema + "." + table + " WHERE "); //where x=? and y=?
         if (data.size() > 0) {
             for (String key : data.keySet()) {
-                if ((String) data.get(key) == null) {
-                    sql.append(key).append(" is ? ");//把@去掉   where 后面是and  where x is null and y is null
-                } else {
+                if (data.get(key) != null) {
                     sql.append(key).append("=? ");
+                    sql.append("and ");
+                    values.add(data.get(key));  // ?中的赋值
                 }
-                sql.append("and ");
-                values.add((String) data.get(key));  // ?中的赋值
 
             }
             String newsql = sql.toString().trim();
@@ -80,18 +75,20 @@ public  class CDCUtils {
         Connection conn = getConnection(targetDatabaseType, targetIp, targetPort, targetSchema, targetUsername, targetPassword, targetDbname);
         assert conn != null;
         conn.setAutoCommit(false);
-        List<String> values = new ArrayList<>();
+        List<Object> values = new ArrayList<>();
         StringBuilder sql = new StringBuilder("UPDATE " + targetSchema + "." + table + " SET ");  //set x=?, y=?
         if (data.size() > 0) {
             for (String key : data.keySet()) {
                 if (!key.endsWith("@")) {
-                    sql.append(key).append(" =?,");
-                    values.add((String) data.get(key));
+                    if (data.get(key) != null) {
+                        sql.append(key).append(" =?,");
+                        values.add(data.get(key));
+                    }
                 }
             }
 
             if (etlTime != null) {
-                sql.append(etlTime + "   = NOW() ");
+                sql.append(etlTime).append("   = NOW() ");
             }
 
             sql.deleteCharAt(sql.length() - 1);  //去掉最后的,
@@ -99,16 +96,16 @@ public  class CDCUtils {
             for (String key : data.keySet()) {
                 if (key.endsWith("@")) {
                     String a = key.substring(0, key.length() - 1);
-                    if ((String) data.get(key) == null) {
-                        sql.append(a).append(" is ? ");//把@去掉   where 后面是and  where x is null and y is null
-                    } else {
-                        sql.append(a).append(" =? ");//把@去掉   where 后面是and  where x=? and y=?
+//                    if (data.get(key) == null) {
+//                        sql.append(a).append(" is ? ");//把@去掉   where 后面是and  where x is null and y is null
+//                    } else {
+//                        sql.append(a).append(" =? ");//把@去掉   where 后面是and  where x=? and y=?
+//                    }
+                    if (data.get(key) != null) {
+                        sql.append(a).append(" =? ");
+                        sql.append("and ");
+                        values.add(data.get(key));
                     }
-
-                    sql.append("and ");
-                    values.add((String) data.get(key));
-                } else {
-                    continue;
                 }
             }
             String newsql = sql.toString().trim();
@@ -131,17 +128,24 @@ public  class CDCUtils {
     }
 
     public static void insertData(String targetSchema, String table, JSONObject data, String targetDatabaseType, String targetIp, String targetPort,
-                                  String targetUsername, String targetPassword, String targetDbname, String index) throws Exception {
+                                  String targetUsername, String targetPassword, String targetDbname, String index, String etlTime) throws Exception {
 
         Connection conn = getConnection(targetDatabaseType, targetIp, targetPort, targetSchema, targetUsername, targetPassword, targetDbname);
+        assert conn != null;
         conn.setAutoCommit(false);
         StringBuilder sql = new StringBuilder("INSERT INTO " + targetSchema + "." + table + " (");
         StringBuilder value = new StringBuilder(" VALUES (");
+
         if (data.size() > 0) {
             for (String key : data.keySet()) {
                 sql.append(key).append(",");
                 value.append("?,");
             }
+//            if (etlTime != null) {  //插入数据的时候自动添加时间
+//                sql.append(etlTime).append(",");
+//                value.append(" now(),");
+//            }
+
             sql.deleteCharAt(sql.length() - 1).append(")");
             value.deleteCharAt(value.length() - 1).append(")");
             //加一段代码，插入数据前进行判断，防止因为有索引出现插入数据错误的情况
@@ -180,10 +184,10 @@ public  class CDCUtils {
                 resultSet.close();
             }
 
-
             if (count == 0) {
                 PreparedStatement stmt = conn.prepareStatement(sql.toString() + "  " + value.toString());
                 int i = 1;
+
                 for (Object valueObj : data.values()) {
                     stmt.setObject(i, valueObj);
                     i++;
@@ -191,7 +195,6 @@ public  class CDCUtils {
                 stmt.execute();
                 conn.commit();
             }
-
 
             conn.close();
             kettleLog.logBasic("有数据新增！");
@@ -206,7 +209,8 @@ public  class CDCUtils {
                                            String targetUsername, String targetPassword, String targetDbname) throws SQLException {
 
         if (targetDatabaseType.equals("MYSQL")) {
-            String url = "jdbc:mysql://" + targetIp + ":" + targetPort + "/" + targetDbname;
+            String url = "jdbc:mysql://" + targetIp + ":" + targetPort + "/" + targetDbname + "?userSSL=true&useUnicode=true&characterEncoding=UTF8&serverTimezone=Asia/Shanghai";
+            //jdbc:mysql://ip:port/dbname?userSSL=true&useUnicode=true&characterEncoding=UTF8&serverTimezone=Asia/Shanghai
             Properties props = new Properties();
             props.setProperty("user", targetUsername);
             props.setProperty("password", targetPassword);
@@ -215,6 +219,7 @@ public  class CDCUtils {
 
         if (targetDatabaseType.equals("POSTGRESQL")) {
             String url = "jdbc:postgresql://" + targetIp + ":" + targetPort + "/" + targetDbname + "?searchpath=" + targetSchema;
+            //jdbc:postgresql://ip:port/dbname?searchpath=schema
             Properties props = new Properties();
             props.setProperty("user", targetUsername);
             props.setProperty("password", targetPassword);
@@ -223,11 +228,21 @@ public  class CDCUtils {
 
         if (targetDatabaseType.equals("ORACLE")) {
             String url = "jdbc:oracle:thin:@" + targetIp + ":" + targetPort + ":" + targetDbname;
+            //jdbc:oracle:thin:@ip:port:dbname
             Properties props = new Properties();
             props.setProperty("user", targetUsername);
             props.setProperty("password", targetPassword);
             return DriverManager.getConnection(url, props);
         }
+        if (targetDatabaseType.equals("MSSQL")) {
+            String url = "jdbc:sqlserver://" + targetIp + ":" + targetPort + ";databaseName:" + targetDbname;
+            //jdbc:sqlserver://ip:port;databaseName=dbname
+            Properties props = new Properties();
+            props.setProperty("user", targetUsername);
+            props.setProperty("password", targetPassword);
+            return DriverManager.getConnection(url, props);
+        }
+
         return null;
 
     }
@@ -381,12 +396,12 @@ public  class CDCUtils {
     }
 
 
-    public static void commonCrud(org.apache.kafka.connect.data.Struct structValue, String table, String key, String topic, Properties props, String targetSchema, String targetDatabaseType, String targetIp, String targetPort, String targetUsername, String targetPassword,
-                                  String targetDbname, String etlTime, String index) {
+    public static void commonCrud(Struct structValue, String table, String targetSchema, String targetDatabaseType, String targetIp, String targetPort, String targetUsername, String targetPassword,
+                                  String targetDbname, String etlTime, String index) throws Exception {
 
         if ((String.valueOf(structValue).contains("after") || String.valueOf(structValue).contains("before")) && String.valueOf(structValue).contains(table)) {
-            org.apache.kafka.connect.data.Struct afterStruct = structValue.getStruct("after");
-            org.apache.kafka.connect.data.Struct beforeStruct = structValue.getStruct("before");
+            Struct afterStruct = structValue.getStruct("after");
+            Struct beforeStruct = structValue.getStruct("before");
             JSONObject operateJson = new JSONObject();
             JSONObject sqlJson = new JSONObject();
 
@@ -397,7 +412,6 @@ public  class CDCUtils {
             List<Field> beforeStructList = null;
 
             if (afterStruct != null && beforeStruct != null) {
-                System.out.println("这是修改数据:  " + sqlJson);
                 operate_type = "update";
                 fieldsList = afterStruct.schema().fields();
                 for (Field field : fieldsList) {
@@ -409,11 +423,10 @@ public  class CDCUtils {
                 for (Field field : beforeStructList) {
                     String fieldName = field.name();
                     Object fieldValue = beforeStruct.get(fieldName);
-                    sqlJson.put(fieldName + "@", fieldValue);  //字段后面加@
+                    sqlJson.put(fieldName + "@", fieldValue);  //字段名称后面加@，作为区分之前的数据
                 }
 
             } else if (afterStruct != null) {
-                System.out.println("这是新增数据:  " + sqlJson);
                 operate_type = "insert";
                 fieldsList = afterStruct.schema().fields();
                 for (Field field : fieldsList) {
@@ -422,7 +435,6 @@ public  class CDCUtils {
                     sqlJson.put(fieldName, fieldValue);
                 }
             } else if (beforeStruct != null) {
-                System.out.println("这是删除数据:  " + sqlJson);
                 operate_type = "delete";
                 fieldsList = beforeStruct.schema().fields();
                 for (Field field : fieldsList) {
@@ -435,35 +447,11 @@ public  class CDCUtils {
             }
 
             operateJson.put("sqlJson", sqlJson);
-            org.apache.kafka.connect.data.Struct source = structValue.getStruct("source");
+            Struct source = structValue.getStruct("source");
             //操作的数据库名
             String database = source.getString("db");
             //操作的表名
             String table1 = source.getString("table");
-
-//            //操作的时间戳（单位：毫秒）
-//            Object operate_ms = source.get("ts_ms");
-//            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-//            String date = sdf.format(new Date((Long) operate_ms));
-
-            //操作的时间戳（单位：毫秒）
-//            Object operate_ms = source.get("ts_ms");
-//            Object operate_ms1 = structValue.get("ts_ms");
-//
-//            Instant instantUtc = Instant.ofEpochMilli(Long.valueOf(String.valueOf(operate_ms)));
-//
-//            // 减去8小时  oracle会出现时间戳大8小时
-//            if (Long.valueOf(String.valueOf(operate_ms)) > (Long.valueOf(String.valueOf(operate_ms1)))) {
-//                instantUtc = instantUtc.minus(8, ChronoUnit.HOURS);
-//            }
-//
-//            // 转换为目标时区的 LocalDateTime，这里以东八区为例
-//            ZoneId zoneId = ZoneId.of("Asia/Shanghai"); // 东八区
-//            LocalDateTime datetimeLocal = LocalDateTime.ofInstant(instantUtc, zoneId);
-//
-//            // 使用DateTimeFormatter格式化时间
-//            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-//            String date = datetimeLocal.format(formatter);
 
             long tsMs = source.getInt64("ts_ms");
             long tsMs1 = structValue.getInt64("ts_ms");
@@ -480,35 +468,24 @@ public  class CDCUtils {
 
             if (table1.equals(table)) {
 
-//                KafkaProducer<String, String> kafkaProducer = new KafkaProducer<>(props);
-//                ProducerRecord<String, String> producerRecord = new ProducerRecord<>(topic, key, String.valueOf(operateJson));
-//                try {
-//                    RecordMetadata metadata = kafkaProducer.send(producerRecord).get();
-//                } catch (InterruptedException | ExecutionException e) {
-//                    e.printStackTrace();
-//                } finally {
-//                    kafkaProducer.close();
-//                }
-//                kettleLog.logBasic("数据写入kafka成功！");
-
-//                                            // 将解析出来的数据插入到下游数据库中
+                // 将解析出来的数据插入到下游数据库中
                 if ("INSERT".toLowerCase().equals(operate_type)) {
                     try {
-                        insertData(targetSchema, table1, sqlJson, targetDatabaseType, targetIp, targetPort, targetUsername, targetPassword, targetDbname, index);
+                        insertData(targetSchema, table1, sqlJson, targetDatabaseType, targetIp, targetPort, targetUsername, targetPassword, targetDbname, index, etlTime);
                     } catch (Exception e) {
-                        e.printStackTrace();
+                        throw new Exception("INSERT:   " + e);
                     }
                 } else if ("UPDATE".toLowerCase().equals(operate_type)) {
                     try {
                         updateData(targetSchema, table1, sqlJson, targetDatabaseType, targetIp, targetPort, targetUsername, targetPassword, targetDbname, etlTime);
                     } catch (Exception e) {
-                        e.printStackTrace();
+                        throw new Exception("UPDATE:  " + e);
                     }
                 } else if ("DELETE".toLowerCase().equals(operate_type)) {
                     try {
                         deleteData(targetSchema, table1, sqlJson, targetDatabaseType, targetIp, targetPort, targetUsername, targetPassword, targetDbname);
                     } catch (Exception e) {
-                        e.printStackTrace();
+                        throw new Exception("DELETE:  " + e);
                     }
                 }
             }
@@ -516,11 +493,11 @@ public  class CDCUtils {
     }
 
 
-    public static JSONObject transformData(org.apache.kafka.connect.data.Struct structValue) {
+    public static JSONObject transformData(Struct structValue, String type) {
         JSONObject operateJson = new JSONObject();
         if ((String.valueOf(structValue).contains("after") || String.valueOf(structValue).contains("before"))) {
-            org.apache.kafka.connect.data.Struct afterStruct = structValue.getStruct("after");
-            org.apache.kafka.connect.data.Struct beforeStruct = structValue.getStruct("before");
+            Struct afterStruct = structValue.getStruct("after");
+            Struct beforeStruct = structValue.getStruct("before");
 
             JSONObject beforeJson = new JSONObject();
             JSONObject afterJson = new JSONObject();
@@ -543,7 +520,7 @@ public  class CDCUtils {
                 for (Field field : beforeStructList) {
                     String fieldName = field.name();
                     Object fieldValue = beforeStruct.get(fieldName);
-                    beforeJson.put(fieldName , fieldValue);  //字段后面加@
+                    beforeJson.put(fieldName, fieldValue);
                 }
 
             } else if (afterStruct != null) {
@@ -563,32 +540,32 @@ public  class CDCUtils {
                     beforeJson.put(fieldName, fieldValue);
                 }
             } else {
-               log.info ("-----------数据无变化-------------");
+                log.info("-----------数据无变化-------------");
             }
 
             operateJson.put("beforeJson", beforeJson);
             operateJson.put("afterJson", afterJson);
-            org.apache.kafka.connect.data.Struct source = structValue.getStruct("source");
+            Struct source = structValue.getStruct("source");
             //操作的数据库名
             String database = source.getString("db");
             //操作的表名
             String table = source.getString("table");
 
-            String schema = source.getString("schema");
-            //操作的时间戳（单位：毫秒）
-            Object operate_ms = source.get("ts_ms");
-
-            Instant instantUtc = Instant.ofEpochMilli(Long.valueOf(String.valueOf(operate_ms)));
-
-            ZoneId zoneId = ZoneId.of("Asia/Shanghai"); // 东八区
-            LocalDateTime datetimeLocal = LocalDateTime.ofInstant(instantUtc, zoneId);
-
-            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-            String date = datetimeLocal.format(formatter);
+            if (!type.equals("mysql")) {    //mysql没有schema
+                String schema = source.getString("schema");
+                operateJson.put("schema", schema);
+            }
+            long tsMs = source.getInt64("ts_ms");
+            long tsMs1 = structValue.getInt64("ts_ms");
+            if (tsMs > tsMs1) {
+                tsMs = tsMs - 8 * 60 * 60 * 1000;  //oracle、sqlserver时间会多8小时
+            }
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+            String date = sdf.format(new Date(tsMs));
 
             operateJson.put("database", database);
             operateJson.put("table", table);
-            operateJson.put("schema", schema);
+
             operateJson.put("operate_ms", date);
             operateJson.put("operate_type", operate_type);
 
@@ -596,7 +573,6 @@ public  class CDCUtils {
         return operateJson;
 
     }
-
 
 
     private static final String CHAR_LOWER = "abcdefghijklmnopqrstuvwxyz";

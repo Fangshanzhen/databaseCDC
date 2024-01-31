@@ -166,7 +166,7 @@ public class sqlserverCDC {
                                         String key = String.valueOf(record.key());
 
                                         Struct structValue = (Struct) record.value();
-                                        commonCrud(structValue, table,key, topic,  props, targetSchema, targetDatabaseType, targetIp, targetPort, targetUsername, targetPassword, targetDbname, etlTime,index);
+//                                        commonCrud(structValue, table,key, topic,  props, targetSchema, targetDatabaseType, targetIp, targetPort, targetUsername, targetPassword, targetDbname, etlTime,index);
                                     })
                                     .build();
 

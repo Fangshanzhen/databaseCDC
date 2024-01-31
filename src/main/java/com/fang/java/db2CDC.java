@@ -155,7 +155,7 @@ public class db2CDC {
 
                                         Struct structValue = (Struct) record.value();
 
-                                        commonCrud(structValue, table,key, topic,  props, targetSchema, targetDatabaseType, targetIp, targetPort, targetUsername, targetPassword, targetDbname, etlTime,index);
+//                                        commonCrud(structValue, table,key, topic,  props, targetSchema, targetDatabaseType, targetIp, targetPort, targetUsername, targetPassword, targetDbname, etlTime,index);
 
                                     })
                                     .build();

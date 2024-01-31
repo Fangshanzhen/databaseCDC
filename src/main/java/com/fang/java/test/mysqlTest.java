@@ -1,13 +1,12 @@
-//package com.fang.java.test;
-//
-//import com.fang.java.mysqlCDC;
-//import com.fang.java.test.test9_1;
-//
-//
-//public class mysqlTest {
-//    public static void main(String[] args) throws Exception {
-//        mysqlCDC.incrementData("MYSQL", "test", "test", "127.0.0.1", "13306", "root",
-//                "congjingkeji", "POSTGRESQL", "postgres", "test", "127.0.0.1", "5432", "postgres",
-//                "123456", "fang0727","10.0.108.51:9092","mysql_cdc",null,null,"etltime");
-//    }
-//}
+package com.fang.java.test;
+
+
+import com.fang.java.databaseCDC;
+
+public class mysqlTest {
+    public static void main(String[] args) throws Exception {
+                databaseCDC.cdcData("mysql","test", "test", "127.0.0.1", "3306", "root",
+                "123456","fangtest1","10.0.108.51:9092","mysql_topic","D:\\Debezium\\offset\\mysql\\file.dat",
+                "D:\\Debezium\\offset\\mysql\\dbhistory.dat","1222");
+    }
+}

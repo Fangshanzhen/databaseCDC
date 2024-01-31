@@ -36,35 +36,36 @@ public class kafkaTransform {
 
 
         try {
-            if (json != null) {
+            if (json != null ) {
                 JSONObject jsonObj = new JSONObject(json);
                 // 处理JSON数据
-                String table = jsonObj.getString("table");
-                String sql = null;
-                if (originalDatabaseType.equals("ORACLE")) {
-                    sql = "select * from " + originalSchema + "." + table + " where rownum <=10 ";  //用sql来获取字段名及属性以便在目标库中创建表
-                } else if (originalDatabaseType.equals("MSSQL")) {
-                    sql = "select top 10 * from " + originalDatabase + "." + originalSchema + "." + table;   //sqlserver  没有limit 用top
-                } else {
-                    sql = "select * from " + originalSchema + "." + table + "  limit 10;";
+                if (jsonObj.has("table")) { //有时候为{}
+                    String table = jsonObj.getString("table");
+                    String sql = null;
+                    if (originalDatabaseType.equals("ORACLE")) {
+                        sql = "select * from " + originalSchema + "." + table + " where rownum <=10 ";  //用sql来获取字段名及属性以便在目标库中创建表
+                    } else if (originalDatabaseType.equals("MSSQL")) {
+                        sql = "select top 10 * from " + originalDatabase + "." + originalSchema + "." + table;   //sqlserver  没有limit 用top
+                    } else {
+                        sql = "select * from " + originalSchema + "." + table + "  limit 10;";
+                    }
+
+                    RowMetaInterface rowMetaInterface = originalDatabase.getQueryFieldsFromPreparedStatement(sql); //获取该表的字段结构
+                    Object[] outputRowData = new Object[rowMetaInterface.size()];
+
+                    if (type.equals("after") && jsonObj.keySet().contains("afterJson")) { //只输出after的
+                        JSONObject sqlJsonObj = jsonObj.getJSONObject("afterJson");
+                        getData(sqlJsonObj, rowMetaInterface, outputRowData);
+                    }
+                    if (type.equals("before") && jsonObj.keySet().contains("beforeJson")) { //只输出before的
+                        JSONObject sqlJsonObj = jsonObj.getJSONObject("beforeJson");
+                        getData(sqlJsonObj, rowMetaInterface, outputRowData);
+                    }
+
+                    kettleResponse.setOutputRowData(outputRowData);
+                    kettleResponse.setOutputRowMeta(rowMetaInterface);
+                    //            kettleLog.logBasic("-----------------" + rowMetaInterface);
                 }
-
-                RowMetaInterface rowMetaInterface = originalDatabase.getQueryFieldsFromPreparedStatement(sql); //获取该表的字段结构
-                Object[] outputRowData = new Object[rowMetaInterface.size()];
-
-                if (type.equals("after") && jsonObj.keySet().contains("afterJson")) { //只输出after的
-                    JSONObject sqlJsonObj = jsonObj.getJSONObject("afterJson");
-                    getData(sqlJsonObj,rowMetaInterface,outputRowData);
-                }
-                if (type.equals("before") && jsonObj.keySet().contains("beforeJson") ) { //只输出before的
-                    JSONObject sqlJsonObj = jsonObj.getJSONObject("beforeJson");
-                    getData(sqlJsonObj,rowMetaInterface,outputRowData);
-                }
-
-                kettleResponse.setOutputRowData(outputRowData);
-                kettleResponse.setOutputRowMeta(rowMetaInterface);
-    //            kettleLog.logBasic("-----------------" + rowMetaInterface);
-
 
             }
         } finally {
