@@ -4,6 +4,7 @@ import com.alibaba.fastjson.JSONObject;
 import lombok.extern.slf4j.Slf4j;
 
 import org.apache.kafka.connect.data.Field;
+import org.json.JSONException;
 import org.pentaho.di.core.Const;
 import org.pentaho.di.core.database.Database;
 import org.pentaho.di.core.database.DatabaseMeta;
@@ -19,10 +20,6 @@ import java.io.IOException;
 import java.security.SecureRandom;
 import java.sql.*;
 import java.text.SimpleDateFormat;
-import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -145,7 +142,6 @@ public class CDCUtils {
 //                sql.append(etlTime).append(",");
 //                value.append(" now(),");
 //            }
-
             sql.deleteCharAt(sql.length() - 1).append(")");
             value.deleteCharAt(value.length() - 1).append(")");
             //加一段代码，插入数据前进行判断，防止因为有索引出现插入数据错误的情况
@@ -631,6 +627,80 @@ public class CDCUtils {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+
+    public static String getSlotName(String originalIp, String originalPort, String originalSchema, String originalUsername, String originalPassword, String originalDbname) throws SQLException {
+        String slotName = null;
+        Statement statement = null;
+        Connection connection = null;
+        ResultSet resultSet = null;
+        try {
+            connection = getConnection("POSTGRESQL", originalIp, originalPort, originalSchema, originalUsername, originalPassword, originalDbname);
+            String sql = "select slot_name  FROM pg_replication_slots where active is false ";  //找到一个空闲的slot_name
+            statement = connection.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
+            statement.setQueryTimeout(6000);
+            statement.setFetchSize(100000);
+            resultSet = statement.executeQuery(sql);
+            if (resultSet.next()) {
+                slotName = resultSet.getString("slot_name");
+            } else {
+                // 没有空闲的slot_name，创建一个
+                int i = 1;
+                boolean slotCreated = false;
+                while (!slotCreated) {
+                    slotName = "debezium_slot_name" + i;
+                    sql = "SELECT * FROM pg_replication_slots WHERE slot_name = '" + slotName + "';";
+                    resultSet = statement.executeQuery(sql);
+                    if (!resultSet.next()) {
+                        slotCreated = true;
+                    } else {
+                        i++;
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            if (resultSet != null) {
+                resultSet.close();
+            }
+            if (statement != null) {
+                statement.close();
+            }
+            if (connection != null) {
+                connection.close();
+            }
+        }
+
+        return slotName;
+    }
+
+
+    public static List<String> allResultSet(ResultSet rs) throws SQLException, JSONException {
+        // json数组
+//        JSONArray array = new JSONArray();
+        List<String> list = new ArrayList<>();
+        // 获取列数
+        ResultSetMetaData metaData = rs.getMetaData();
+        int columnCount = metaData.getColumnCount();
+
+        // 遍历ResultSet中的每条数据
+        while (rs.next()) {
+            // 遍历每一列
+            for (int i = 1; i <= columnCount; i++) {
+                String columnName = metaData.getColumnName(i);
+                if (rs.getObject(columnName) != null) {
+                    String value = String.valueOf(rs.getObject(columnName));
+                    list.add(value);
+                }
+            }
+        }
+
+        if (list.size() > 0) {
+            return list;
+        }
+        return null;
     }
 
 

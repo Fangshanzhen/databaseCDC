@@ -17,8 +17,7 @@ import java.util.*;
 
 @Slf4j
 public class kafkaTransform {
-    private static final LogChannelFactory logChannelFactory = new org.pentaho.di.core.logging.LogChannelFactory();
-    private static final LogChannel kettleLog = logChannelFactory.create("消费kafka中的数据");
+
 
     public static kettleResponse createTransMeta(String json, String type, String originalDatabaseType, String originalDbname, String originalSchema, String originalIp, String originalPort,
                                                  String originalUsername, String originalPassword) throws Exception {
@@ -29,14 +28,14 @@ public class kafkaTransform {
         try {
             originalDbmeta = new DatabaseMeta(originalDbname, originalDatabaseType, "Native(JDBC)", originalIp, originalDbname, originalPort, originalUsername, originalPassword);
         } catch (Exception e) {
-            kettleLog.logError(e + "");
+            throw new Exception("" + e);
         }
         Database originalDatabase = new Database(originalDbmeta);
         originalDatabase.connect();
 
 
         try {
-            if (json != null ) {
+            if (json != null) {
                 JSONObject jsonObj = new JSONObject(json);
                 // 处理JSON数据
                 if (jsonObj.has("table")) { //有时候为{}

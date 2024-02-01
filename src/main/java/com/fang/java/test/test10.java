@@ -2,7 +2,10 @@ package com.fang.java.test;
 
 
 
+import com.fang.java.cdc2queue;
 import com.fang.java.databaseCDC;
+
+import java.util.concurrent.LinkedBlockingQueue;
 
 
 public class test10 {
@@ -11,9 +14,9 @@ public class test10 {
     public static void main(String[] args) throws Exception {
 
 
-        databaseCDC.cdcData("postgresql", "postgres", "test", "127.0.0.1", "5432", "postgres",
-                "123456","test2,test3","10.0.108.51:9092","postgresql_topic","D:\\Debezium\\offset\\postgresql\\file.dat",
-                "D:\\Debezium\\offset\\postgresql\\dbhistory.dat",null);
+//        databaseCDC.cdcData("postgresql", "postgres", "test", "127.0.0.1", "5432", "postgres",
+//                "123456","test2,test3","10.0.108.51:9092","postgresql_topic","D:\\Debezium\\offset\\postgresql\\file.dat",
+//                "D:\\Debezium\\offset\\postgresql\\dbhistory.dat",null);
 
 
         /**
@@ -40,6 +43,12 @@ public class test10 {
 //        databaseCDC.cdcData("mysql","test", "test", "127.0.0.1", "3306", "root",
 //                "123456","fangtest1","10.0.108.51:9092","mysql_topic","D:\\Debezium\\offset\\mysql\\file.dat",
 //                "D:\\Debezium\\offset\\mysql\\dbhistory.dat","1222");
+
+
+
+        cdc2queue.cdcData("postgresql", "postgres", "test", "127.0.0.1", "5432", "postgres",
+                "123456","test2","D:\\Debezium\\offset\\postgresql\\file.dat",
+                "D:\\Debezium\\offset\\postgresql\\dbhistory.dat",null,new LinkedBlockingQueue());
 
 
     }
