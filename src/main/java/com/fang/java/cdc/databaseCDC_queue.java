@@ -72,19 +72,24 @@ public class databaseCDC_queue {
             EmbeddedEngine engine = EmbeddedEngine.create()
                     .using(config)
                     .notifying(record -> {
+                        if (queue == null) {
+                            kettleLog.logBasic("cdc监听数据暂停.....");
+                            return;
+                        }
                         Struct structValue = (Struct) record.value();
                         JSONObject operateJson = transformData(structValue, originalDatabaseType);
                         // 将转换后的JSON对象放入队列，等待被下一个节点消费
                         if (operateJson != null && operateJson.keySet().size() > 0) {
-                        queue.offer(operateJson);
-                        kettleLog.logBasic("cdc数据写进队列：" + operateJson);
-
+                            queue.offer(operateJson);
+                            kettleLog.logBasic("cdc数据写进队列：" + operateJson);
                         }
                     })
                     .build();
 
             // 启动一个线程来运行Debezium Engine
+            new Thread(() -> {
                 engine.run();
+            }).start();
 
 
             // 启动OperateJsonProcessor来处理队列中的数据
