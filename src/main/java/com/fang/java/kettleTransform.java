@@ -15,8 +15,11 @@ import org.pentaho.di.core.row.value.ValueMetaString;
 
 import java.util.*;
 
+/**
+ * 监听的json数据转为kettle可以识别的形式
+ */
 @Slf4j
-public class kafkaTransform {
+public class kettleTransform {
 
 
     public static kettleResponse createTransMeta(String json, String type, String originalDatabaseType, String originalDbname, String originalSchema, String originalIp, String originalPort,

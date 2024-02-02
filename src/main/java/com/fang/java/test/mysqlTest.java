@@ -1,7 +1,7 @@
 package com.fang.java.test;
 
 
-import com.fang.java.databaseCDC;
+import com.fang.java.cdc.databaseCDC;
 
 public class mysqlTest {
     public static void main(String[] args) throws Exception {

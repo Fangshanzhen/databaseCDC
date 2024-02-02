@@ -51,7 +51,7 @@
 //        BlockingQueue queue = new LinkedBlockingQueue();
 //
 //
-//        cdc2queue.cdcData(originalDatabaseType, originalDbname, originalSchema, originalIp, originalPort,
+//        databaseCDC_queue.cdcData(originalDatabaseType, originalDbname, originalSchema, originalIp, originalPort,
 //                originalUsername, originalPassword, tableList,
 //                offsetAddress, databaseHistoryAddress, null, queue);
 //

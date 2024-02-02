@@ -1,4 +1,4 @@
-package com.fang.java;
+package com.fang.java.cdc;
 
 import io.debezium.config.Configuration;
 import io.debezium.embedded.EmbeddedEngine;

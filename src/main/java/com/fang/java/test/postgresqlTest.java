@@ -1,6 +1,6 @@
 package com.fang.java.test;
 
-import com.fang.java.*;
+import com.fang.java.cdc.databaseCDC_database;
 
 public class postgresqlTest {
 
