@@ -163,25 +163,6 @@ public class databaseCDC_database {
     }
 
 
-    private static String connectorClass(String originalDatabaseType) {
-        if (originalDatabaseType.toLowerCase().equals("postgresql")) {
-            return "io.debezium.connector.postgresql.PostgresConnector";
-        }
-        if (originalDatabaseType.toLowerCase().equals("mysql")) {
-            return "io.debezium.connector.mysql.MySqlConnector";
-        }
-        if (originalDatabaseType.toLowerCase().equals("oracle")) {
-            return "io.debezium.connector.oracle.OracleConnector";
-        }
-        if (originalDatabaseType.equals("sqlserver") || originalDatabaseType.equals("MSSQL")) {
-            return "io.debezium.connector.sqlserver.SqlServerConnector";
-        }
-        if (originalDatabaseType.toLowerCase().equals("db2")) {
-            return "io.debezium.connector.db2.Db2Connector";
-        }
-
-        return null;
-    }
 
 
 }
