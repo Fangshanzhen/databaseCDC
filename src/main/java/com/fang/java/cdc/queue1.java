@@ -7,27 +7,35 @@ import io.debezium.relational.history.FileDatabaseHistory;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.storage.FileOffsetBackingStore;
+import org.pentaho.di.core.KettleEnvironment;
 import org.pentaho.di.core.logging.LogChannel;
 import org.pentaho.di.core.logging.LogChannelFactory;
 
+
+import java.io.IOException;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 
 import static com.fang.java.CDCUtils.*;
 
 /**
- * 各关系型数据库通用cdc，写进队列的版本
- * 参考文档：https://debezium.io/documentation/reference/nightly/connectors/
+ * 各关系型数据库通用cdc，写进队列的版本，想设置暂停任务的
  */
 @Slf4j
-public class databaseCDC_queue {
+public class queue1 {
     private static final LogChannelFactory logChannelFactory = new org.pentaho.di.core.logging.LogChannelFactory();
     private static final LogChannel kettleLog = logChannelFactory.create("监听数据");
 
-    public static void cdcData(String originalDatabaseType, String originalDbname, String originalSchema, String originalIp, String originalPort,
-                               String originalUsername, String originalPassword,
-                               String tableList, String offsetAddress, String databaseHistoryAddress, String serverId, BlockingQueue queue) throws Exception {
+    private volatile boolean running = true;
+    private EmbeddedEngine engine;
+    private final ExecutorService executorService = Executors.newSingleThreadExecutor();
 
+    public EmbeddedEngine cdcData(String originalDatabaseType, String originalDbname, String originalSchema, String originalIp, String originalPort,
+                                  String originalUsername, String originalPassword,
+                                  String tableList, String offsetAddress, String databaseHistoryAddress, String serverId, BlockingQueue queue) throws Exception {
+        KettleEnvironment.init();
         if (tableList != null) {
             String modified = transformString(tableList, originalSchema);
             //创建存放目录
@@ -43,7 +51,7 @@ public class databaseCDC_queue {
                     .with("database.server.name", "my-cdc-server-" + originalDatabaseType)
                     .with("table.include.list", modified)
                     .with("database.schema", originalSchema)
-                    .with("include.schema.changes", "false")  //表结构方面的
+                    .with("include.schema.changes", "false")
                     .with("name", "my-connector-" + originalDatabaseType)
                     .with("offset.storage", FileOffsetBackingStore.class.getName())
                     .with("offset.storage.file.filename", offsetAddress)
@@ -70,13 +78,9 @@ public class databaseCDC_queue {
             }
 
 
-            EmbeddedEngine engine = EmbeddedEngine.create()
+            engine = EmbeddedEngine.create()
                     .using(config)
                     .notifying(record -> {
-                        if (queue == null) {
-                            kettleLog.logBasic("cdc监听数据暂停.....");
-                            return;
-                        }
                         Struct structValue = (Struct) record.value();
                         JSONObject operateJson = transformData(structValue, originalDatabaseType);
                         // 将转换后的JSON对象放入队列，等待被下一个节点消费
@@ -87,19 +91,48 @@ public class databaseCDC_queue {
                     })
                     .build();
 
-            // 启动一个线程来运行Debezium Engine
-            new Thread(() -> {
-                engine.run();
-            }).start();
 
+            return engine;
 
             // 启动OperateJsonProcessor来处理队列中的数据
 //            OperateJsonProcessor processor = new OperateJsonProcessor(queue);
 //            new Thread(processor).start();
         }
+        return null;
 
     }
 
+
+    public void startCDC(String originalDatabaseType, String originalDbname, String originalSchema, String originalIp, String originalPort,
+                                   String originalUsername, String originalPassword,
+                                   String tableList, String offsetAddress, String databaseHistoryAddress, String serverId, BlockingQueue queue) throws Exception {
+
+        kettleLog.logBasic("监听开始.....");
+        engine = cdcData(originalDatabaseType, originalDbname, originalSchema, originalIp, originalPort,
+                originalUsername, originalPassword,
+                tableList, offsetAddress, databaseHistoryAddress, serverId, queue);
+        executorService.execute(() -> {
+            try {
+                engine.run();
+            } catch (Exception e) {
+                // 异常处理逻辑
+            }
+        });
+    }
+
+    public void stopCDC() throws IOException {
+        kettleLog.logBasic("监听暂停/停止.....");
+        running = false;
+        executorService.shutdown();
+        if (engine != null) {
+            engine.close();
+        }
+
+    }
+
+    public boolean isRunning() {
+        return running;
+    }
 
     private static String connectorClass(String originalDatabaseType) {
         if (originalDatabaseType.equals("postgresql")) {

@@ -3,6 +3,7 @@ package com.fang.java.test;
 
 import com.fang.java.cdc.databaseCDC;
 import com.fang.java.cdc.databaseCDC_queue;
+import com.fang.java.cdc.queue1;
 
 import java.util.concurrent.LinkedBlockingQueue;
 
@@ -39,14 +40,17 @@ public class test10 {
 //                "D:\\Debezium\\offset\\sqlserver\\dbhistory.dat", null);
 
 //
-        databaseCDC.cdcData("mysql","test", "test", "127.0.0.1", "3306", "root",
-                "123456","test2","10.0.108.51:9092","mysql_topic","D:\\Debezium\\offset\\mysql\\file.dat",
-                "D:\\Debezium\\offset\\mysql\\dbhistory.dat","1222");
+//        databaseCDC.cdcData("mysql","test", "test", "127.0.0.1", "3306", "root",
+//                "123456","test2","10.0.108.51:9092","mysql_topic","D:\\Debezium\\offset\\mysql\\file.dat",
+//                "D:\\Debezium\\offset\\mysql\\dbhistory.dat","1222");
 
 
 //        databaseCDC_queue.cdcData("postgresql", "postgres", "test", "127.0.0.1", "5432", "postgres",
 //                "123456", "test2", "D:\\Debezium\\offset\\postgresql\\file.dat",
 //                "D:\\Debezium\\offset\\postgresql\\dbhistory.dat", null, new LinkedBlockingQueue());
+
+
+
 
 
     }
