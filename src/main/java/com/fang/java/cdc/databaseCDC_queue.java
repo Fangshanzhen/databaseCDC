@@ -26,7 +26,7 @@ public class databaseCDC_queue {
 
     public static void cdcData(String originalDatabaseType, String originalDbname, String originalSchema, String originalIp, String originalPort,
                                String originalUsername, String originalPassword,
-                               String tableList, String offsetAddress, String databaseHistoryAddress, String serverId, BlockingQueue queue) throws Exception {
+                               String tableList, String offsetAddress, String databaseHistoryAddress, String serverId, BlockingQueue queue, String slotName) throws Exception {
 
         if (tableList != null) {
             String modified = transformString(tableList, originalSchema);
@@ -43,7 +43,7 @@ public class databaseCDC_queue {
                     .with("database.server.name", "my-cdc-server-" + originalDatabaseType)
                     .with("table.include.list", modified)
                     .with("database.schema", originalSchema)
-                    .with("include.schema.changes", "false")  //表结构方面的
+//                    .with("include.schema.changes", "false")  //表结构方面的
                     .with("name", "my-connector-" + originalDatabaseType)
                     .with("offset.storage", FileOffsetBackingStore.class.getName())
                     .with("offset.storage.file.filename", offsetAddress)
@@ -58,7 +58,7 @@ public class databaseCDC_queue {
 
             if (originalDatabaseType.equals("postgresql")) {
 //                String slotName = getSlotName(originalIp, originalPort, originalSchema, originalUsername, originalPassword, originalDbname);
-                config = config.edit().with("slot.name", "debezium_slot") // postgresql 单独配置， 逻辑复制槽名称, 不能超过max_replication_slots = 20
+                config = config.edit().with("slot.name", slotName) // postgresql 单独配置， 逻辑复制槽名称, 不能超过max_replication_slots = 20
                         .with("plugin.name", "pgoutput").build();      //postgresql 单独配置，必须是这个名字
             }
             if (originalDatabaseType.equals("mysql")) {
@@ -99,7 +99,6 @@ public class databaseCDC_queue {
         }
 
     }
-
 
 
 }

@@ -37,7 +37,7 @@ public class databaseCDC_database {
                                String targetDatabaseType, String targetDbname, String targetSchema, String targetIp, String targetPort,
                                String targetUsername, String targetPassword, String index, //索引字段名 ipid,pid 复合索引以逗号隔开
                                String indexName,
-                               String etlTime
+                               String etlTime,String slotName
 
     ) throws Exception {
 
@@ -116,7 +116,7 @@ public class databaseCDC_database {
                                     .with("database.server.name", "my-cdc-server-" + originalDatabaseType)
                                     .with("table.include.list", modified)
                                     .with("database.schema", originalSchema)
-                                    .with("include.schema.changes", "false")
+//                                    .with("include.schema.changes", "false")
                                     .with("name", "my-connector-" + originalDatabaseType)
                                     .with("offset.storage", FileOffsetBackingStore.class.getName())
                                     .with("offset.storage.file.filename", offsetAddress)
@@ -129,12 +129,14 @@ public class databaseCDC_database {
                                     .build();
 
                             if (originalDatabaseType.toLowerCase().equals("postgresql")) {
-                                config = config.edit().with("slot.name", "debezium1234") // postgresql 单独配置， max_replication_slots = 20
+                                config = config.edit().with("slot.name", slotName) // postgresql 单独配置， max_replication_slots = 20
                                         .with("plugin.name", "pgoutput").build();      //postgresql 单独配置，必须是这个名字
                             }
                             if (originalDatabaseType.toLowerCase().equals("mysql")) {
                                 config = config.edit()
                                         .with("database.server.id", serverId)   //填上mysql的 serverid
+                                        .with("converters", "dateConverters")   //解决mysql字段中的时区问题，设置with("database.serverTimezone", "Asia/Shanghai")无效
+                                        .with("dateConverters.type", "com.fang.java.cdc.MySqlDateTimeConverter")
                                         .build();      //
                             }
 

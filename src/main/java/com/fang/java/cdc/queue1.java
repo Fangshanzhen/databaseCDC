@@ -51,7 +51,7 @@ public class queue1 {
                     .with("database.server.name", "my-cdc-server-" + originalDatabaseType)
                     .with("table.include.list", modified)
                     .with("database.schema", originalSchema)
-                    .with("include.schema.changes", "false")
+//                    .with("include.schema.changes", "false")
                     .with("name", "my-connector-" + originalDatabaseType)
                     .with("offset.storage", FileOffsetBackingStore.class.getName())
                     .with("offset.storage.file.filename", offsetAddress)

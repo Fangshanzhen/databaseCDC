@@ -10,7 +10,7 @@ public class postgresqlTest {
         databaseCDC_database.cdcData("POSTGRESQL", "postgres", "test", "127.0.0.1", "5432", "postgres",
                 "123456", "test2", "D:\\\\Debezium\\\\offset\\\\postgresql\\\\file.dat", "D:\\\\Debezium\\\\offset\\\\postgresql\\\\dbhistory.dat", null,
                 "MYSQL", "test?useUnicode=true&characterEncoding=utf-8", "test", "127.0.0.1", "3306", "root",
-                "123456", "column1,column2", "x_index", "etltime");  // postgresql2mysql
+                "123456", "column1,column2", "x_index", "etltime","debezium");  // postgresql2mysql
 
 
 

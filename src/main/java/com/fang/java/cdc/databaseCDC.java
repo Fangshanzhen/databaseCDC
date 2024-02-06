@@ -36,7 +36,7 @@ public class databaseCDC {
 
     public static void cdcData(String originalDatabaseType, String originalDbname, String originalSchema, String originalIp, String originalPort,
                                String originalUsername, String originalPassword,
-                               String tableList, String kafkaServer, String topic, String offsetAddress, String databaseHistoryAddress, String serverId) throws Exception {
+                               String tableList, String kafkaServer, String topic, String offsetAddress, String databaseHistoryAddress, String serverId, String slotName) throws Exception {
 
         KettleEnvironment.init();
         if (tableList != null) {
@@ -51,8 +51,8 @@ public class databaseCDC {
 
 
             Properties properties = new Properties();
-            properties.setProperty("converters","dateConverters");
-            properties.setProperty("dateConverters.type","com.fang.java.cdc.MySqlDateTimeConverter");
+            properties.setProperty("converters", "dateConverters");
+            properties.setProperty("dateConverters.type", "com.fang.java.cdc.MySqlDateTimeConverter");
 
 
             Configuration config = Configuration.create()
@@ -65,7 +65,7 @@ public class databaseCDC {
                     .with("database.server.name", "my-cdc-server-" + originalDatabaseType)
                     .with("table.include.list", modified)
                     .with("database.schema", originalSchema)
-                    .with("include.schema.changes", "false")
+//                    .with("include.schema.changes", "false")
                     .with("name", "my-connector-" + originalDatabaseType)
                     .with("offset.storage", FileOffsetBackingStore.class.getName())
                     .with("offset.storage.file.filename", offsetAddress)
@@ -79,7 +79,7 @@ public class databaseCDC {
                     .build();
 
             if (originalDatabaseType.equals("postgresql")) {
-                config = config.edit().with("slot.name", "debezium12") // postgresql 单独配置， max_replication_slots = 20
+                config = config.edit().with("slot.name", slotName) // postgresql 单独配置， max_replication_slots = 20
                         .with("plugin.name", "pgoutput").build();      //postgresql 单独配置，必须是这个名字
             }
             if (originalDatabaseType.equals("mysql")) {
@@ -128,8 +128,6 @@ public class databaseCDC {
 
         }
     }
-
-
 
 
 }

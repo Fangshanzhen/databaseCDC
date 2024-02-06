@@ -47,7 +47,7 @@ public class test10 {
 
 //        databaseCDC_queue.cdcData("postgresql", "postgres", "test", "127.0.0.1", "5432", "postgres",
 //                "123456", "test2", "D:\\Debezium\\offset\\postgresql\\file.dat",
-//                "D:\\Debezium\\offset\\postgresql\\dbhistory.dat", null, new LinkedBlockingQueue());
+//                "D:\\Debezium\\offset\\postgresql\\dbhistory.dat", null, new LinkedBlockingQueue(),"debezium_1234");
 
 
 
