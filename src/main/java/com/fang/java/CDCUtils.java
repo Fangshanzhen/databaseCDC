@@ -20,10 +20,8 @@ import java.io.IOException;
 import java.security.SecureRandom;
 import java.sql.*;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
+import java.util.*;
 import java.util.Date;
-import java.util.List;
-import java.util.Properties;
 
 
 @Slf4j
@@ -63,7 +61,7 @@ public class CDCUtils {
             stmt.execute();
             conn.commit();
             conn.close();
-            kettleLog.logBasic("有数据删除！");
+            kettleLog.logBasic(table +" 有数据删除！");
         }
     }
 
@@ -120,7 +118,7 @@ public class CDCUtils {
             stmt.execute();
             conn.commit();
             conn.close();
-            kettleLog.logBasic("有数据更新！");
+            kettleLog.logBasic(table +" 有数据更新！");
         }
     }
 
@@ -148,6 +146,11 @@ public class CDCUtils {
             // 检查是否存在冲突的索引值
             int count = 0;
             StringBuilder checkSql = new StringBuilder("SELECT COUNT(*) FROM " + targetSchema + "." + table + "  where  ");
+
+
+            if (index.contains("#")) {
+                index = index.replace("#", ",");
+            }
             String[] indexList = null;
             if (index != null && index.contains(",")) {
                 indexList = index.split(",");
@@ -193,7 +196,7 @@ public class CDCUtils {
             }
 
             conn.close();
-            kettleLog.logBasic("有数据新增！");
+            kettleLog.logBasic(table + " 有数据新增！");
         }
     }
 
@@ -291,8 +294,8 @@ public class CDCUtils {
                     ValueMetaInterface v = rowMetaInterface.getValueMeta(i);
                     String x = originalDbmeta.getFieldDefinition(v, null, null, false); // ipid LONGTEXT  b TEXT
 
-                    if (index.contains(",")) {   //ipid,pid 复合索引
-                        String[] indexes = index.split(",");
+                    if (index.contains("#")) {   //ipid,pid 复合索引
+                        String[] indexes = index.split("#");
                         for (int j = 0; j < indexes.length; j++) {
                             String in = indexes[j];
                             String x1 = null;
@@ -319,6 +322,9 @@ public class CDCUtils {
                             }
                         }
                     }
+                }
+                if (index.contains("#")) {
+                    index = index.replace("#", ",");
                 }
                 if (targetSchema.length() > 0) {   //分情况添加索引语句
                     String indexSql = "CREATE UNIQUE INDEX " + indexName + " ON " + targetSchema + "." + table + " (" + index + "); ";
@@ -392,97 +398,114 @@ public class CDCUtils {
     }
 
 
-    public static void commonCrud(Struct structValue, String table, String targetSchema, String targetDatabaseType, String targetIp, String targetPort, String targetUsername, String targetPassword,
+    public static void commonCrud(Struct structValue, String tableList, String targetSchema, String targetDatabaseType, String targetIp, String targetPort, String targetUsername, String targetPassword,
                                   String targetDbname, String etlTime, String index) throws Exception {
 
-        if ((String.valueOf(structValue).contains("after") || String.valueOf(structValue).contains("before")) && String.valueOf(structValue).contains(table)) {
-            Struct afterStruct = structValue.getStruct("after");
-            Struct beforeStruct = structValue.getStruct("before");
-            JSONObject operateJson = new JSONObject();
-            JSONObject sqlJson = new JSONObject();
+        List<String> allTableList = null;
+        List<String> allIndexList = null;
+        if (tableList.contains(",")) {
+            allTableList = Arrays.asList(tableList.split(","));
+        } else {
+            allTableList = Collections.singletonList(tableList);
+        }
+        if (index.contains(",")) {
+            allIndexList = Arrays.asList(index.split(","));
+        } else {
+            allIndexList = Collections.singletonList(index);
+        }
 
-            //操作类型
-            String operate_type = "";
+        for (int i = 0; i < allIndexList.size(); i++) {
+            String table = allTableList.get(i);
+            if ((String.valueOf(structValue).contains("after") || String.valueOf(structValue).contains("before")) && String.valueOf(structValue).contains(table)) {
+                Struct afterStruct = structValue.getStruct("after");
+                Struct beforeStruct = structValue.getStruct("before");
+                JSONObject operateJson = new JSONObject();
+                JSONObject sqlJson = new JSONObject();
 
-            List<Field> fieldsList = null;
-            List<Field> beforeStructList = null;
+                //操作类型
+                String operate_type = "";
 
-            if (afterStruct != null && beforeStruct != null) {
-                operate_type = "update";
-                fieldsList = afterStruct.schema().fields();
-                for (Field field : fieldsList) {
-                    String fieldName = field.name();
-                    Object fieldValue = afterStruct.get(fieldName);
-                    sqlJson.put(fieldName, fieldValue);
-                }
-                beforeStructList = beforeStruct.schema().fields();
-                for (Field field : beforeStructList) {
-                    String fieldName = field.name();
-                    Object fieldValue = beforeStruct.get(fieldName);
-                    sqlJson.put(fieldName + "@", fieldValue);  //字段名称后面加@，作为区分之前的数据
-                }
+                List<Field> fieldsList = null;
+                List<Field> beforeStructList = null;
 
-            } else if (afterStruct != null) {
-                operate_type = "insert";
-                fieldsList = afterStruct.schema().fields();
-                for (Field field : fieldsList) {
-                    String fieldName = field.name();
-                    Object fieldValue = afterStruct.get(fieldName);
-                    sqlJson.put(fieldName, fieldValue);
-                }
-            } else if (beforeStruct != null) {
-                operate_type = "delete";
-                fieldsList = beforeStruct.schema().fields();
-                for (Field field : fieldsList) {
-                    String fieldName = field.name();
-                    Object fieldValue = beforeStruct.get(fieldName);
-                    sqlJson.put(fieldName, fieldValue);
-                }
-            } else {
-                System.out.println("-----------数据无变化-------------");
-            }
-
-            operateJson.put("sqlJson", sqlJson);
-            Struct source = structValue.getStruct("source");
-            //操作的数据库名
-            String database = source.getString("db");
-            //操作的表名
-            String table1 = source.getString("table");
-
-            long tsMs = source.getInt64("ts_ms");
-            long tsMs1 = structValue.getInt64("ts_ms");
-            if (tsMs > tsMs1) {
-                tsMs = tsMs - 8 * 60 * 60 * 1000;  //oracle、sqlserver时间会多8小时
-            }
-            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-            String date = sdf.format(new Date(tsMs));
-
-            operateJson.put("database", database);
-            operateJson.put("table", table1);
-            operateJson.put("operate_ms", date);
-            operateJson.put("operate_type", operate_type);
-
-            if (table1.equals(table)) {
-
-                // 将解析出来的数据插入到下游数据库中
-                if ("INSERT".toLowerCase().equals(operate_type)) {
-                    try {
-                        insertData(targetSchema, table1, sqlJson, targetDatabaseType, targetIp, targetPort, targetUsername, targetPassword, targetDbname, index, etlTime);
-                    } catch (Exception e) {
-                        throw new Exception("INSERT:   " + e);
+                if (afterStruct != null && beforeStruct != null) {
+                    operate_type = "update";
+                    fieldsList = afterStruct.schema().fields();
+                    for (Field field : fieldsList) {
+                        String fieldName = field.name();
+                        Object fieldValue = afterStruct.get(fieldName);
+                        sqlJson.put(fieldName, fieldValue);
                     }
-                } else if ("UPDATE".toLowerCase().equals(operate_type)) {
-                    try {
-                        updateData(targetSchema, table1, sqlJson, targetDatabaseType, targetIp, targetPort, targetUsername, targetPassword, targetDbname, etlTime);
-                    } catch (Exception e) {
-                        throw new Exception("UPDATE:  " + e);
+                    beforeStructList = beforeStruct.schema().fields();
+                    for (Field field : beforeStructList) {
+                        String fieldName = field.name();
+                        Object fieldValue = beforeStruct.get(fieldName);
+                        sqlJson.put(fieldName + "@", fieldValue);  //字段名称后面加@，作为区分之前的数据
                     }
-                } else if ("DELETE".toLowerCase().equals(operate_type)) {
-                    try {
-                        deleteData(targetSchema, table1, sqlJson, targetDatabaseType, targetIp, targetPort, targetUsername, targetPassword, targetDbname);
-                    } catch (Exception e) {
-                        throw new Exception("DELETE:  " + e);
+
+                } else if (afterStruct != null) {
+                    operate_type = "insert";
+                    fieldsList = afterStruct.schema().fields();
+                    for (Field field : fieldsList) {
+                        String fieldName = field.name();
+                        Object fieldValue = afterStruct.get(fieldName);
+                        sqlJson.put(fieldName, fieldValue);
                     }
+                } else if (beforeStruct != null) {
+                    operate_type = "delete";
+                    fieldsList = beforeStruct.schema().fields();
+                    for (Field field : fieldsList) {
+                        String fieldName = field.name();
+                        Object fieldValue = beforeStruct.get(fieldName);
+                        sqlJson.put(fieldName, fieldValue);
+                    }
+                } else {
+                    System.out.println("-----------数据无变化-------------");
+                }
+
+                operateJson.put("sqlJson", sqlJson);
+                Struct source = structValue.getStruct("source");
+                //操作的数据库名
+                String database = source.getString("db");
+                //操作的表名
+                String table1 = source.getString("table");
+
+                long tsMs = source.getInt64("ts_ms");
+                long tsMs1 = structValue.getInt64("ts_ms");
+                if (tsMs > tsMs1) {
+                    tsMs = tsMs - 8 * 60 * 60 * 1000;  //oracle、sqlserver时间会多8小时
+                }
+                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                String date = sdf.format(new Date(tsMs));
+
+                operateJson.put("database", database);
+                operateJson.put("table", table1);
+                operateJson.put("operate_ms", date);
+                operateJson.put("operate_type", operate_type);
+
+                if (table1.equals(table)) {
+
+                    // 将解析出来的数据插入到下游数据库中
+                    if ("INSERT".toLowerCase().equals(operate_type)) {
+                        try {
+                            insertData(targetSchema, table1, sqlJson, targetDatabaseType, targetIp, targetPort, targetUsername, targetPassword, targetDbname, allIndexList.get(i), etlTime);
+                        } catch (Exception e) {
+                            kettleLog.logError("INSERT:   " + e);
+                        }
+                    } else if ("UPDATE".toLowerCase().equals(operate_type)) {
+                        try {
+                            updateData(targetSchema, table1, sqlJson, targetDatabaseType, targetIp, targetPort, targetUsername, targetPassword, targetDbname, etlTime);
+                        } catch (Exception e) {
+                            kettleLog.logError("UPDATE:  " + e);
+                        }
+                    } else if ("DELETE".toLowerCase().equals(operate_type)) {
+                        try {
+                            deleteData(targetSchema, table1, sqlJson, targetDatabaseType, targetIp, targetPort, targetUsername, targetPassword, targetDbname);
+                        } catch (Exception e) {
+                            kettleLog.logError("DELETE:  " + e);
+                        }
+                    }
+
                 }
             }
         }
@@ -704,21 +727,20 @@ public class CDCUtils {
     }
 
 
-
     public static String connectorClass(String originalDatabaseType) {
-        if (originalDatabaseType.equals("postgresql")) {
+        if (originalDatabaseType.toLowerCase().equals("postgresql")) {
             return "io.debezium.connector.postgresql.PostgresConnector";
         }
-        if (originalDatabaseType.equals("mysql")) {
+        if (originalDatabaseType.toLowerCase().equals("mysql")) {
             return "io.debezium.connector.mysql.MySqlConnector";
         }
-        if (originalDatabaseType.equals("oracle")) {
+        if (originalDatabaseType.toLowerCase().equals("oracle")) {
             return "io.debezium.connector.oracle.OracleConnector";
         }
-        if (originalDatabaseType.equals("sqlserver")) {
+        if (originalDatabaseType.toLowerCase().equals("sqlserver")) {
             return "io.debezium.connector.sqlserver.SqlServerConnector";
         }
-        if (originalDatabaseType.equals("db2")) {
+        if (originalDatabaseType.toLowerCase().equals("db2")) {
             return "io.debezium.connector.db2.Db2Connector";
         }
 

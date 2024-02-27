@@ -13,6 +13,7 @@ import org.pentaho.di.core.database.DatabaseMeta;
 import org.pentaho.di.core.logging.LogChannel;
 import org.pentaho.di.core.logging.LogChannelFactory;
 import org.pentaho.di.core.row.RowMetaInterface;
+
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -35,9 +36,9 @@ public class databaseCDC_database {
                                String originalUsername, String originalPassword,
                                String tableList, String offsetAddress, String databaseHistoryAddress, String serverId,
                                String targetDatabaseType, String targetDbname, String targetSchema, String targetIp, String targetPort,
-                               String targetUsername, String targetPassword, String index, //索引字段名 ipid,pid 复合索引以逗号隔开
+                               String targetUsername, String targetPassword, String index, //索引字段名 ipid,pid 复合索引以#隔开;多个表对应多个索引，以逗号隔开如AA#BB,FANG
                                String indexName,
-                               String etlTime,String slotName
+                               String etlTime, String slotName
 
     ) throws Exception {
 
@@ -62,15 +63,24 @@ public class databaseCDC_database {
                 if (tableList != null) {//填入表名的
 
                     List<String> allTableList = null;
+                    List<String> allIndexList = null;
                     if (tableList.contains(",")) {
                         allTableList = Arrays.asList(tableList.split(","));
                     } else {
                         allTableList = Collections.singletonList(tableList);
                     }
+                    if (index.contains(",")) {
+                        allIndexList = Arrays.asList(index.split(","));
+                    } else {
+                        allIndexList = Collections.singletonList(index);
+                    }
+
+
                     String modified = transformString(tableList, originalSchema);
 
                     if (allTableList.size() > 0) {
-                        for (String table : allTableList) {
+                        for (int i = 0; i < allIndexList.size(); i++) {
+                            String table = allTableList.get(i);
                             String sql = null;
                             if (originalDatabaseType.equals("ORACLE")) {
                                 sql = "select * from " + originalSchema + "." + table + " where rownum <=10 ";  //用sql来获取字段名及属性以便在目标库中创建表
@@ -98,10 +108,11 @@ public class databaseCDC_database {
                             if (sql1.length() > 0) {
                                 if (!checkTableExist(targetDatabase, targetSchema, table)) {  //判断目标数据库中表是否存在
                                     //建索引、创建表
-                                    sameCreate(table, sql1, rowMetaInterface, originalDbmeta, originalDatabaseType, targetDatabaseType, targetSchema, targetDatabase, index, indexName); //创建表
+                                    sameCreate(table, sql1, rowMetaInterface, originalDbmeta, originalDatabaseType, targetDatabaseType, targetSchema, targetDatabase, allIndexList.get(i), table + "_" + indexName); //创建表
                                     kettleLog.logBasic(table + " 创建输出表成功！");
                                 }
                             }
+                        }
 
                             //创建存放目录
                             createFile(offsetAddress, databaseHistoryAddress);
@@ -114,7 +125,7 @@ public class databaseCDC_database {
                                     .with("database.password", originalPassword)
                                     .with("database.dbname", originalDbname)
                                     .with("database.server.name", "my-cdc-server-" + originalDatabaseType)
-                                    .with("table.include.list", modified)
+                                    .with("table.include.list", modified)  //支持多个表，逗号隔开
                                     .with("database.schema", originalSchema)
 //                                    .with("include.schema.changes", "false")
                                     .with("name", "my-connector-" + originalDatabaseType)
@@ -145,7 +156,7 @@ public class databaseCDC_database {
                                     .notifying(record -> {
                                         Struct structValue = (Struct) record.value();
                                         try {
-                                            commonCrud(structValue, table, targetSchema, targetDatabaseType, targetIp, targetPort, targetUsername, targetPassword, targetDbname, etlTime, index);
+                                            commonCrud(structValue, tableList, targetSchema, targetDatabaseType, targetIp, targetPort, targetUsername, targetPassword, targetDbname, etlTime, index);
                                         } catch (Exception e) {
                                             e.printStackTrace();
                                         }
@@ -155,7 +166,7 @@ public class databaseCDC_database {
                             engine.run();
                         }
 
-                    }
+
                 }
             } finally {
                 originalDatabase.disconnect();
@@ -163,8 +174,6 @@ public class databaseCDC_database {
             }
         }
     }
-
-
 
 
 }

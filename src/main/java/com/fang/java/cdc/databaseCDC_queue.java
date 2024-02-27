@@ -7,6 +7,7 @@ import io.debezium.relational.history.FileDatabaseHistory;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.storage.FileOffsetBackingStore;
+import org.pentaho.di.core.KettleEnvironment;
 import org.pentaho.di.core.logging.LogChannel;
 import org.pentaho.di.core.logging.LogChannelFactory;
 
@@ -21,13 +22,14 @@ import static com.fang.java.CDCUtils.*;
  */
 @Slf4j
 public class databaseCDC_queue {
+
     private static final LogChannelFactory logChannelFactory = new org.pentaho.di.core.logging.LogChannelFactory();
     private static final LogChannel kettleLog = logChannelFactory.create("监听数据");
 
     public static void cdcData(String originalDatabaseType, String originalDbname, String originalSchema, String originalIp, String originalPort,
                                String originalUsername, String originalPassword,
                                String tableList, String offsetAddress, String databaseHistoryAddress, String serverId, BlockingQueue queue, String slotName) throws Exception {
-
+        KettleEnvironment.init();
         if (tableList != null) {
             String modified = transformString(tableList, originalSchema);
             //创建存放目录

@@ -2,6 +2,7 @@ package com.fang.java.test;
 
 
 import com.fang.java.cdc.databaseCDC;
+import com.fang.java.cdc.databaseCDC_database;
 import com.fang.java.cdc.databaseCDC_queue;
 import com.fang.java.cdc.queue1;
 
@@ -45,12 +46,15 @@ public class test10 {
 //                "D:\\Debezium\\offset\\mysql\\dbhistory.dat","1222");
 
 
-//        databaseCDC_queue.cdcData("postgresql", "postgres", "test", "127.0.0.1", "5432", "postgres",
-//                "123456", "test2", "D:\\Debezium\\offset\\postgresql\\file.dat",
-//                "D:\\Debezium\\offset\\postgresql\\dbhistory.dat", null, new LinkedBlockingQueue(),"debezium_1234");
+        databaseCDC_queue.cdcData("postgresql", "postgres", "test", "127.0.0.1", "5432", "postgres",
+                "123456", "test2,test3", "D:\\Debezium\\offset\\postgresql\\file.dat",
+                "D:\\Debezium\\offset\\postgresql\\dbhistory.dat", null, new LinkedBlockingQueue(),"debezium_1234");
 
 
-
+//        databaseCDC_database.cdcData("ORACLE", "ORCL1", "C##FANG", "127.0.0.1", "1521", "c##fang",
+//                "test","FANG,FANG1","D:\\Debezium\\offset\\oracle\\file.dat","D:\\Debezium\\offset\\oracle\\dbhistory.dat","1222",
+//                "POSTGRESQL","postgres","test","127.0.0.1","5432","postgres","123456","AA#BB,FANG"
+//                ,"aa_index","etltime","debezium1");
 
 
     }

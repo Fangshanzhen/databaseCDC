@@ -20,7 +20,7 @@ import java.util.concurrent.ExecutionException;
 import static com.fang.java.mongodbUtils.structToJson;
 
 /**
- * 测试成功
+ * 测试成功 1.6.4.Final测试成功，1.9.7版本失败
  */
 public class mongoTest {
 
