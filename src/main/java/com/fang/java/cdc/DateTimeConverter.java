@@ -11,9 +11,8 @@ import java.util.Properties;
 
 /**
  * @Description:实现CustomConverter接口，重写对应方法对mysql的时间类型进行标准转换
-
  */
-public class MySqlDateTimeConverter implements CustomConverter<SchemaBuilder, RelationalColumn> {
+public class DateTimeConverter implements CustomConverter<SchemaBuilder, RelationalColumn> {
 
     private DateTimeFormatter dateFormatter = DateTimeFormatter.ISO_DATE;
 
@@ -67,7 +66,6 @@ public class MySqlDateTimeConverter implements CustomConverter<SchemaBuilder, Re
         if ("TIMESTAMP".equals(sqlType)) {
 
             schemaBuilder = SchemaBuilder.string().optional().name("com.darcytech.debezium.timestamp.string");
-
             converter = this::convertTimestamp;
 
         }
@@ -157,7 +155,8 @@ public class MySqlDateTimeConverter implements CustomConverter<SchemaBuilder, Re
             return timestampFormatter.format(localDateTime).replaceAll("T", " ");
 
         }
-        return String.valueOf(input);
+
+        return String.valueOf(input).replaceAll("T", " ").replaceAll("Z", "");
     }
 }
 

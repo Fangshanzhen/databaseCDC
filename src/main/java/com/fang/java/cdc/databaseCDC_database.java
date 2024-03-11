@@ -13,6 +13,7 @@ import org.pentaho.di.core.database.DatabaseMeta;
 import org.pentaho.di.core.logging.LogChannel;
 import org.pentaho.di.core.logging.LogChannelFactory;
 import org.pentaho.di.core.row.RowMetaInterface;
+import org.pentaho.di.core.row.ValueMetaInterface;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -92,6 +93,15 @@ public class databaseCDC_database {
 
                             RowMetaInterface rowMetaInterface = originalDatabase.getQueryFieldsFromPreparedStatement(sql);
 
+                            List<ValueMetaInterface> valueMetaInterfaces = rowMetaInterface.getValueMetaList();
+                            for (ValueMetaInterface v : valueMetaInterfaces) {
+                                if (v.getType() == ValueMetaInterface.TYPE_TIMESTAMP || v.getType() == ValueMetaInterface.TYPE_DATE) {
+                                    v.setType(ValueMetaInterface.TYPE_STRING); //建表时把时间类型转为字符串
+                                    v.setLength(100); //字段长度
+                                    v.setConversionMask("yyyy-MM-dd HH:mm:ss");
+                                }
+                            }
+
                             String sql1 = targetDatabase.getDDLCreationTable(targetSchema + "." + table, rowMetaInterface);
 
                             if (etlTime != null && etlTime.length() > 0) {
@@ -114,57 +124,61 @@ public class databaseCDC_database {
                             }
                         }
 
-                            //创建存放目录
-                            createFile(offsetAddress, databaseHistoryAddress);
+                        //创建存放目录
+                        createFile(offsetAddress, databaseHistoryAddress);
 
-                            Configuration config = Configuration.create()
-                                    .with("connector.class", connectorClass(originalDatabaseType))
-                                    .with("database.hostname", originalIp)
-                                    .with("database.port", originalPort)
-                                    .with("database.user", originalUsername)
-                                    .with("database.password", originalPassword)
-                                    .with("database.dbname", originalDbname)
-                                    .with("database.server.name", "my-cdc-server-" + originalDatabaseType)
-                                    .with("table.include.list", modified)  //支持多个表，逗号隔开
-                                    .with("database.schema", originalSchema)
-//                                    .with("include.schema.changes", "false")
-                                    .with("name", "my-connector-" + originalDatabaseType)
-                                    .with("offset.storage", FileOffsetBackingStore.class.getName())
-                                    .with("offset.storage.file.filename", offsetAddress)
-                                    .with("offset.flush.interval.ms", 2000)
-                                    .with("database.history", FileDatabaseHistory.class.getName())
-                                    .with("database.history.file.filename", databaseHistoryAddress)
-                                    .with("logger.level", "DEBUG")
-                                    .with("snapshot.mode", "initial") //首次全量
-                                    .with("database.serverTimezone", "Asia/Shanghai")
-                                    .build();
+                        Configuration config = Configuration.create()
+                                .with("connector.class", connectorClass(originalDatabaseType))
+                                .with("database.hostname", originalIp)
+                                .with("database.port", originalPort)
+                                .with("database.user", originalUsername)
+                                .with("database.password", originalPassword)
+                                .with("database.dbname", originalDbname)
+                                .with("database.server.name", "my-cdc-server-" + originalDatabaseType)
+                                .with("table.include.list", modified)  //支持多个表，逗号隔开
+                                //  .with("table.whitelist", "your-schema.*") //某个schema下所有表
+                                .with("database.schema", originalSchema)
+                                .with("include.schema.changes", "false")
+                                .with("name", "my-connector-" + originalDatabaseType)
+                                .with("offset.storage", FileOffsetBackingStore.class.getName())
+                                .with("offset.storage.file.filename", offsetAddress)
+                                .with("offset.flush.interval.ms", 2000)
+                                .with("database.history", FileDatabaseHistory.class.getName())
+                                .with("database.history.file.filename", databaseHistoryAddress)
+                                .with("logger.level", "DEBUG")
+                                .with("snapshot.mode", "never") //首次全量initial
+                                .with("database.serverTimezone", "Asia/Shanghai")
+                                .build();
 
-                            if (originalDatabaseType.toLowerCase().equals("postgresql")) {
-                                config = config.edit().with("slot.name", slotName) // postgresql 单独配置， max_replication_slots = 20
-                                        .with("plugin.name", "pgoutput").build();      //postgresql 单独配置，必须是这个名字
-                            }
-                            if (originalDatabaseType.toLowerCase().equals("mysql")) {
-                                config = config.edit()
-                                        .with("database.server.id", serverId)   //填上mysql的 serverid
-                                        .with("converters", "dateConverters")   //解决mysql字段中的时区问题，设置with("database.serverTimezone", "Asia/Shanghai")无效
-                                        .with("dateConverters.type", "com.fang.java.cdc.MySqlDateTimeConverter")
-                                        .build();      //
-                            }
-
-                            EmbeddedEngine engine = EmbeddedEngine.create()
-                                    .using(config)
-                                    .notifying(record -> {
-                                        Struct structValue = (Struct) record.value();
-                                        try {
-                                            commonCrud(structValue, tableList, targetSchema, targetDatabaseType, targetIp, targetPort, targetUsername, targetPassword, targetDbname, etlTime, index);
-                                        } catch (Exception e) {
-                                            e.printStackTrace();
-                                        }
-                                    })
-                                    .build();
-
-                            engine.run();
+                        if (originalDatabaseType.toLowerCase().equals("postgresql")) {
+                            config = config.edit().with("slot.name", slotName) // postgresql 单独配置， max_replication_slots = 20
+                                    .with("plugin.name", "pgoutput")
+                                    .with("converters", "dateConverters")
+                                    .with("dateConverters.type", "com.fang.java.cdc.DateTimeConverter")  //postgresql中 timestamp监听时会变成时间戳
+                                    .build();      //postgresql 单独配置，必须是这个名字
                         }
+                        if (originalDatabaseType.toLowerCase().equals("mysql")) {
+                            config = config.edit()
+                                    .with("database.server.id", serverId)   //填上mysql的 serverid
+                                    .with("converters", "dateConverters")   //解决mysql字段中的时区问题，设置with("database.serverTimezone", "Asia/Shanghai")无效
+                                    .with("dateConverters.type", "com.fang.java.cdc.DateTimeConverter")
+                                    .build();      //
+                        }
+
+                        EmbeddedEngine engine = EmbeddedEngine.create()
+                                .using(config)
+                                .notifying(record -> {
+                                    Struct structValue = (Struct) record.value();
+                                    try {
+                                        commonCrud(structValue, tableList, targetSchema, targetDatabaseType, targetIp, targetPort, targetUsername, targetPassword, targetDbname, etlTime, index);
+                                    } catch (Exception e) {
+                                        e.printStackTrace();
+                                    }
+                                })
+                                .build();
+
+                        engine.run();
+                    }
 
 
                 }

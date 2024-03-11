@@ -50,11 +50,6 @@ public class databaseCDC {
             props.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer");
 
 
-            Properties properties = new Properties();
-            properties.setProperty("converters", "dateConverters");
-            properties.setProperty("dateConverters.type", "com.fang.java.cdc.MySqlDateTimeConverter");
-
-
             Configuration config = Configuration.create()
                     .with("connector.class", connectorClass(originalDatabaseType))
                     .with("database.hostname", originalIp)
@@ -65,7 +60,7 @@ public class databaseCDC {
                     .with("database.server.name", "my-cdc-server-" + originalDatabaseType)
                     .with("table.include.list", modified)
                     .with("database.schema", originalSchema)
-//                    .with("include.schema.changes", "false")
+                    .with("include.schema.changes", "false") //
                     .with("name", "my-connector-" + originalDatabaseType)
                     .with("offset.storage", FileOffsetBackingStore.class.getName())
                     .with("offset.storage.file.filename", offsetAddress)
@@ -73,7 +68,7 @@ public class databaseCDC {
                     .with("database.history", FileDatabaseHistory.class.getName())
                     .with("database.history.file.filename", databaseHistoryAddress)
                     .with("logger.level", "DEBUG")
-                    .with("snapshot.mode", "initial") //首次全量
+                    .with("snapshot.mode", "initial") //首次全量initial
                     .with("database.serverTimezone", "Asia/Shanghai")
 
                     .build();
@@ -84,10 +79,9 @@ public class databaseCDC {
             }
             if (originalDatabaseType.equals("mysql")) {
                 config = config.edit()
-                        // .with("database.port", Integer.valueOf(originalPort)) //mysql port为数值型
                         .with("database.server.id", serverId)   //填上mysql的 serverid
                         .with("converters", "dateConverters")   //解决mysql字段中的时区问题，设置with("database.serverTimezone", "Asia/Shanghai")无效
-                        .with("dateConverters.type", "com.fang.java.cdc.MySqlDateTimeConverter")
+                        .with("dateConverters.type", "com.fang.java.cdc.DateTimeConverter")
                         .build();      //
             }
 
@@ -106,16 +100,16 @@ public class databaseCDC {
                         try {
                             JSONObject jsonObject = futureJsonObject.get();
 
-                            //todo 处理JSONObject
-                            if (jsonObject != null && jsonObject.keySet().size() > 0) {
-                                try (KafkaProducer<String, String> kafkaProducer = new KafkaProducer<>(props)) {
-                                    ProducerRecord<String, String> producerRecord = new ProducerRecord<>(topic, tableList, String.valueOf(jsonObject));
-                                    kafkaProducer.send(producerRecord).get();
-                                    kettleLog.logBasic("数据写入kafka成功！");
-                                } catch (InterruptedException | ExecutionException e) {
-                                    kettleLog.logError("" + e);
-                                }
-                            }
+//                            //todo 处理JSONObject,kafka
+//                            if (jsonObject != null && jsonObject.keySet().size() > 0) {
+//                                try (KafkaProducer<String, String> kafkaProducer = new KafkaProducer<>(props)) {
+//                                    ProducerRecord<String, String> producerRecord = new ProducerRecord<>(topic, tableList, String.valueOf(jsonObject));
+//                                    kafkaProducer.send(producerRecord).get();
+//                                    kettleLog.logBasic("数据写入kafka成功！");
+//                                } catch (InterruptedException | ExecutionException e) {
+//                                    kettleLog.logError("" + e);
+//                                }
+//                            }
 
                         } catch (Exception e) {
                             kettleLog.logError("" + e);

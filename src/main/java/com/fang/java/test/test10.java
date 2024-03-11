@@ -42,7 +42,7 @@ public class test10 {
 
 //
 //        databaseCDC.cdcData("mysql","test", "test", "127.0.0.1", "3306", "root",
-//                "123456","test2","10.0.108.51:9092","mysql_topic","D:\\Debezium\\offset\\mysql\\file.dat",
+//                "123456","a","10.0.108.51:9092","mysql_topic","D:\\Debezium\\offset\\mysql\\file.dat",
 //                "D:\\Debezium\\offset\\mysql\\dbhistory.dat","1222",null);
 
 
@@ -51,12 +51,17 @@ public class test10 {
 //                "D:\\Debezium\\offset\\postgresql\\dbhistory.dat", null, new LinkedBlockingQueue(),"debezium_1234");
 
 
+//
+
         databaseCDC_database.cdcData("ORACLE", "ORCL1", "C##FANG", "127.0.0.1", "1521", "c##fang",
-                "test","FANG,FANG1","D:\\Debezium\\offset\\oracle\\file.dat","D:\\Debezium\\offset\\oracle\\dbhistory.dat","1222",
-                "POSTGRESQL","postgres","test","127.0.0.1","5432","postgres","123456","AA#BB,FANG"
-                ,"aa_index","etltime","debezium1");
+                "test", "FANG,FANG1", "D:\\Debezium\\offset\\oracle\\file.dat", "D:\\Debezium\\offset\\oracle\\dbhistory.dat", "1222",
+                "POSTGRESQL", "postgres", "test", "127.0.0.1", "5432", "postgres", "123456", "AA#BB,FANG"
+                , "aa_index", "etltime", "debezium1");
 
-
+//                databaseCDC_database.cdcData("MYSQL", "test", "test", "127.0.0.1", "3306", "root",
+//                        "123456","a","D:\\Debezium\\offset\\mysql\\file.dat","D:\\Debezium\\offset\\mysql\\dbhistory.dat","1222",
+//                        "POSTGRESQL","postgres","public","127.0.0.1","5432","postgres","123456","a"
+//                        ,"aa_index","etltime","debezium1");
     }
 
 }

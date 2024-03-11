@@ -73,7 +73,7 @@ public class queue1 {
                 config = config.edit()
                         .with("database.server.id", serverId)   //填上mysql的 serverid
                         .with("converters", "dateConverters")   //解决mysql字段中的时区问题，设置with("database.serverTimezone", "Asia/Shanghai")无效
-                        .with("dateConverters.type", "com.fang.java.cdc.MySqlDateTimeConverter")
+                        .with("dateConverters.type", "com.fang.java.cdc.DateTimeConverter")
                         .build();      //
             }
 

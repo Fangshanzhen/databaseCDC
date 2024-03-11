@@ -167,7 +167,7 @@
     <orderEntry type="library" name="Maven: org.pentaho:commons-xul-core:8.2.0.0-342" level="project" />
     <orderEntry type="library" name="Maven: org.pentaho:commons-xul-swt:8.2.0.0-342" level="project" />
     <orderEntry type="library" name="Maven: org.eclipse:jface:3.3.0-I20070606-0010" level="project" />
-    <orderEntry type="library" name="Maven: org.eclipse:swt:3.5.2" level="project" />
+    <orderEntry type="library" name="Maven: org.eclipse:swt:3.3.0-v3346" level="project" />
     <orderEntry type="library" name="Maven: org.eclipse.core:commands:3.3.0-i20070605-0010" level="project" />
     <orderEntry type="library" name="Maven: org.eclipse.equinox:common:3.6.200-v20130402-1505" level="project" />
     <orderEntry type="library" name="Maven: org.pentaho:commons-xul-swing:8.2.0.0-342" level="project" />

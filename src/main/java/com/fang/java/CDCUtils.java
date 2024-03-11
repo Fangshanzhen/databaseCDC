@@ -51,17 +51,24 @@ public class CDCUtils {
             if (newsql.endsWith("and")) {
                 newsql = newsql.substring(0, newsql.length() - 3);
             }
-            PreparedStatement stmt = conn.prepareStatement(newsql);
-            int i = 1;
-            for (Object valueObj : values) {
-                stmt.setObject(i, valueObj);
-                i++;
-            }
+            try {
+                PreparedStatement stmt = conn.prepareStatement(newsql);
+                int i = 1;
+                for (Object valueObj : values) {
+                    stmt.setObject(i, valueObj);
+                    i++;
+                }
 
-            stmt.execute();
-            conn.commit();
-            conn.close();
-            kettleLog.logBasic(table +" 有数据删除！");
+                stmt.execute();
+                conn.commit();
+                conn.close();
+                kettleLog.logBasic(table + " 有数据删除！");
+            } catch (SQLException e) {
+                e.printStackTrace();
+                kettleLog.logError("delete:  " + e);
+            } finally {
+                conn.close();
+            }
         }
     }
 
@@ -107,18 +114,27 @@ public class CDCUtils {
             if (newsql.endsWith("and")) {
                 newsql = newsql.substring(0, newsql.length() - 3);
             }
+            try {
+                PreparedStatement stmt = conn.prepareStatement(newsql);
+                int i = 1;
+                for (Object valueObj : values) {
+                    stmt.setObject(i, valueObj);
+                    i++;
+                }
 
-            PreparedStatement stmt = conn.prepareStatement(newsql);
-            int i = 1;
-            for (Object valueObj : values) {
-                stmt.setObject(i, valueObj);
-                i++;
+                stmt.execute();
+                conn.commit();
+                conn.close();
+                kettleLog.logBasic(table + " 有数据更新！");
+            } catch (SQLException e) {
+                e.printStackTrace();
+                kettleLog.logError("update:  " + e);
+            } finally {
+                conn.close();
             }
 
-            stmt.execute();
-            conn.commit();
-            conn.close();
-            kettleLog.logBasic(table +" 有数据更新！");
+//
+
         }
     }
 
@@ -183,20 +199,27 @@ public class CDCUtils {
                 resultSet.close();
             }
 
-            if (count == 0) {
-                PreparedStatement stmt = conn.prepareStatement(sql.toString() + "  " + value.toString());
-                int i = 1;
+            try {
+                if (count == 0) {
+                    PreparedStatement stmt = conn.prepareStatement(sql.toString() + "  " + value.toString());
+                    int i = 1;
 
-                for (Object valueObj : data.values()) {
-                    stmt.setObject(i, valueObj);
-                    i++;
+                    for (Object valueObj : data.values()) {
+                        stmt.setObject(i, valueObj);
+                        i++;
+                    }
+                    stmt.execute();
+                    conn.commit();
+                    conn.close();
+                    kettleLog.logBasic(table + " 有数据新增！");
                 }
-                stmt.execute();
-                conn.commit();
+            } catch (SQLException e) {
+                e.printStackTrace();
+                kettleLog.logError("insert:  " + e);
+            } finally {
+                conn.close();
             }
 
-            conn.close();
-            kettleLog.logBasic(table + " 有数据新增！");
         }
     }
 
